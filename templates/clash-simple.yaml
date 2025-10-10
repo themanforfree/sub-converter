@@ -1,0 +1,28 @@
+# Simple Clash Template
+# Minimal configuration with basic proxy groups and rules
+# Note: 'general' contains top-level Clash settings
+# 'proxy-groups', 'rules', and 'dns' are separate sections
+
+mode: rule
+log-level: info
+
+proxy-groups:
+  - name: Proxies
+    type: select
+    proxies:
+      - Auto
+      - DIRECT
+      - {{all_proxies}}
+      
+  - name: Auto
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    proxies:
+      - {{all_proxies}}
+
+rules:
+  - GEOIP,LAN,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,Proxies
+

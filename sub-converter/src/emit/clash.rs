@@ -1,6 +1,6 @@
 use crate::error::{Error, Result};
 use crate::ir::{Node, Protocol, Subscription};
-use crate::template::{ClashTemplate, Template};
+use crate::template::{ClashTemplate, ProxyGroup, Template};
 use serde::Serialize;
 use serde_yaml::Value;
 
@@ -13,7 +13,8 @@ struct ClashOut {
     general: Option<Value>,
     proxies: Vec<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    proxy_groups: Option<Value>,
+    #[serde(rename = "proxy-groups")]
+    proxy_groups: Option<Vec<ProxyGroup>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     rules: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -38,10 +39,19 @@ impl super::Emitter for ClashEmitter {
             .iter()
             .map(node_to_clash_proxy)
             .collect::<Result<Vec<_>>>()?;
+
+        // Collect all proxy names for template placeholder
+        let proxy_names: Vec<String> = sub.nodes.iter().map(|n| n.name.clone()).collect();
+
+        // Process proxy_groups to replace {{all_proxies}} placeholder
+        let processed_proxy_groups = proxy_groups
+            .as_ref()
+            .map(|groups| process_proxy_groups(groups, &proxy_names));
+
         let out = ClashOut {
             general: general.clone(),
             proxies,
-            proxy_groups: proxy_groups.clone(),
+            proxy_groups: processed_proxy_groups,
             rules: rules.clone(),
             dns: dns.clone(),
         };
@@ -50,6 +60,29 @@ impl super::Emitter for ClashEmitter {
         })?;
         Ok(s)
     }
+}
+
+/// Process proxy groups to replace {{all_proxies}} placeholder
+fn process_proxy_groups(groups: &[ProxyGroup], proxy_names: &[String]) -> Vec<ProxyGroup> {
+    groups
+        .iter()
+        .map(|group| {
+            let mut group = group.clone();
+            if let Some(proxies) = &mut group.proxies {
+                let mut new_proxies = Vec::new();
+                for proxy in proxies.iter() {
+                    if proxy == "{{all_proxies}}" {
+                        // Expand placeholder to all proxy names
+                        new_proxies.extend(proxy_names.iter().cloned());
+                    } else {
+                        new_proxies.push(proxy.clone());
+                    }
+                }
+                *proxies = new_proxies;
+            }
+            group
+        })
+        .collect()
 }
 
 fn node_to_clash_proxy(n: &Node) -> Result<Value> {

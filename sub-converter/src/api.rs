@@ -5,6 +5,40 @@ use crate::parse::uri::UriListParser;
 use crate::parse::{Parser, clash::ClashParser, sing_box::SingBoxParser};
 use crate::template::{ClashTemplate, SingBoxTemplate, Template};
 
+/// Automatically detect the format of input content
+pub fn detect_format(content: &str) -> Result<InputFormat> {
+    let trimmed = content.trim();
+
+    // Try to detect Clash YAML format
+    if trimmed.contains("proxies:") {
+        return Ok(InputFormat::Clash);
+    }
+
+    // Try to detect SingBox JSON format
+    if trimmed.starts_with('{') && trimmed.contains("outbounds") {
+        // Try to parse as JSON to confirm
+        if serde_json::from_str::<serde_json::Value>(trimmed).is_ok() {
+            return Ok(InputFormat::SingBox);
+        }
+    }
+
+    // Try to detect URI list format
+    // Check if every non-empty line contains ://
+    let lines: Vec<&str> = trimmed
+        .lines()
+        .map(|l| l.trim())
+        .filter(|l| !l.is_empty())
+        .collect();
+
+    if !lines.is_empty() && lines.iter().all(|line| line.contains("://")) {
+        return Ok(InputFormat::UriList);
+    }
+
+    Err(Error::ValidationError {
+        reason: "Cannot auto-detect input format, please specify manually".into(),
+    })
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum InputFormat {
     Clash,

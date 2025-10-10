@@ -8,3 +8,9 @@ license.workspace = true
 
 [dependencies]
 sub-converter = { path = "../sub-converter" }
+clap = { version = "4", features = ["derive"] }
+reqwest = { version = "0.12", features = ["blocking"] }
+anyhow = "1.0"
+serde_json = "1.0"
+serde_yaml = "0.9"
+base64 = "0.22"

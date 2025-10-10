@@ -31,3 +31,28 @@ fn trojan_uri_with_tls() {
     assert_eq!(tls.server_name.as_deref(), Some("exa.mple"));
     assert!(tls.alpn.unwrap().contains(&"h2".to_string()))
 }
+
+#[test]
+fn trojan_uri_with_extended_params() {
+    // Test allowInsecure, peer, and type parameters
+    let n = parse_trojan_uri(
+        "trojan://password@applehk1.zymnode.cc:443?allowInsecure=0&peer=applehk1.zymnode.cc&sni=applehk1.zymnode.cc&type=tcp#HK-Node"
+    )
+    .expect("trojan uri with extended params");
+
+    assert_eq!(n.name, "HK-Node");
+    assert_eq!(n.server, "applehk1.zymnode.cc");
+    assert_eq!(n.port, 443);
+
+    // Check TLS config
+    let tls = n.tls.expect("tls should be present");
+    assert_eq!(tls.enabled, true);
+    assert_eq!(tls.server_name.as_deref(), Some("applehk1.zymnode.cc"));
+    assert_eq!(tls.insecure, Some(false)); // allowInsecure=0 means insecure=false
+
+    // Check transport
+    assert!(matches!(
+        n.transport,
+        Some(sub_converter::ir::Transport::Tcp)
+    ));
+}

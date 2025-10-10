@@ -3,8 +3,8 @@ use crate::ir::{Node, Protocol, Tls};
 use percent_encoding::percent_decode_str;
 use url::Url;
 
-// trojan://password@host:port?security=tls&sni=example.com#name
-// optionally ws params in query are ignored for now
+// trojan://password@host:port?type=tcp&sni=example.com&allowInsecure=0&peer=example.com#name
+// Supported query parameters: type, sni/server_name/peer, alpn, insecure/allowInsecure
 pub fn parse_trojan_uri(s: &str) -> Result<Node> {
     let url = Url::parse(s).map_err(|e| Error::ParseError {
         detail: format!("trojan uri: {e}"),
@@ -31,12 +31,27 @@ pub fn parse_trojan_uri(s: &str) -> Result<Node> {
         enabled: true,
         ..Default::default()
     };
+    let mut transport = None;
     let qp = url.query_pairs();
     for (k, v) in qp {
         match k.as_ref() {
-            "sni" | "server_name" => tls.server_name = Some(v.into_owned()),
+            "sni" | "server_name" | "peer" => tls.server_name = Some(v.into_owned()),
             "alpn" => tls.alpn = Some(v.split(',').map(|s| s.to_string()).collect()),
-            "insecure" => tls.insecure = Some(v == "1" || v.eq_ignore_ascii_case("true")),
+            "insecure" | "allowInsecure" => {
+                tls.insecure = Some(v == "1" || v.eq_ignore_ascii_case("true"))
+            }
+            "type" => match v.as_ref() {
+                "tcp" => transport = Some(crate::ir::Transport::Tcp),
+                "ws" => {
+                    transport = Some(crate::ir::Transport::Ws {
+                        path: None,
+                        headers: None,
+                    })
+                }
+                "h2" | "http" => transport = Some(crate::ir::Transport::H2),
+                "grpc" => transport = Some(crate::ir::Transport::Grpc { service_name: None }),
+                _ => {}
+            },
             _ => {}
         }
     }
@@ -48,7 +63,7 @@ pub fn parse_trojan_uri(s: &str) -> Result<Node> {
         protocol: Protocol::Trojan {
             password: password.to_string(),
         },
-        transport: None,
+        transport,
         tls: Some(tls),
         tags: Vec::new(),
     })

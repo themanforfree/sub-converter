@@ -6,7 +6,7 @@ pub mod merge;
 pub mod parse;
 pub mod template;
 
-pub use api::{BuildOptions, Builder, InputFormat, OutputFormat, convert};
+pub use api::{BuildOptions, Builder, InputFormat, OutputFormat, convert, detect_format};
 pub use error::{Error, Result};
 pub use ir::*;
 pub use parse::Parser;
