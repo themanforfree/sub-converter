@@ -43,7 +43,7 @@ impl<'de> Deserialize<'de> for ClashTemplate {
 
         let proxy_groups = map
             .remove("proxy-groups")
-            .map(|v| serde_yaml::from_value(v))
+            .map(serde_yaml::from_value)
             .transpose()
             .map_err(serde::de::Error::custom)?;
         let rules = map.remove("rules");
