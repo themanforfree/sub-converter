@@ -1,0 +1,10 @@
+[package]
+name = "sub-converter-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "CLI for sub-converter"
+license.workspace = true
+
+[dependencies]
+sub-converter = { path = "../sub-converter" }
