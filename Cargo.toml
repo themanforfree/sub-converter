@@ -1,0 +1,9 @@
+[package]
+name = "sub-converter"
+version = "0.1.0"
+edition = "2024"
+authors = ["themanforfree@gmail.com"]
+description = "A sub converter"
+license = "MIT"
+
+[dependencies]
