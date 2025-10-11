@@ -5,6 +5,7 @@ edition.workspace = true
 authors.workspace = true
 description = "A sub converter library"
 license.workspace = true
+readme = "README.md"
 
 [dependencies]
 serde.workspace = true
