@@ -1,17 +1,9 @@
-use crate::ir::{InputMeta, Node, Subscription};
+use crate::ir::{Node, Subscription};
 
-pub fn merge_with_meta(groups: Vec<(Vec<Node>, Option<String>)>) -> Subscription {
+pub fn merge_subscriptions(groups: Vec<Vec<Node>>) -> Subscription {
     let mut nodes = Vec::new();
-    let mut meta = Vec::new();
-    for (group_nodes, tag) in groups.into_iter() {
-        let start = nodes.len();
+    for group_nodes in groups.into_iter() {
         nodes.extend(group_nodes);
-        let end = nodes.len();
-        meta.push(InputMeta {
-            tag,
-            range_start: start,
-            range_end: end,
-        });
     }
-    Subscription { nodes, meta }
+    Subscription { nodes }
 }

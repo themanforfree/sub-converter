@@ -35,7 +35,6 @@ fn build_sub() -> Subscription {
                 tags: vec![],
             },
         ],
-        meta: vec![],
     }
 }
 

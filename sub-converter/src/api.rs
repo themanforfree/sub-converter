@@ -1,6 +1,6 @@
 use crate::emit::{Emitter, clash::ClashEmitter, sing_box::SingBoxEmitter};
 use crate::error::{Error, Result};
-use crate::merge::merge_with_meta;
+use crate::merge::merge_subscriptions;
 use crate::parse::uri::UriListParser;
 use crate::parse::{Parser, clash::ClashParser, sing_box::SingBoxParser};
 use crate::template::{ClashTemplate, SingBoxTemplate, Template};
@@ -74,9 +74,9 @@ pub fn convert(inputs: Vec<InputItem>, target: OutputFormat, opt: BuildOptions) 
             InputFormat::UriList => Box::new(UriListParser),
         };
         let nodes = parser.parse(&item.content)?;
-        groups.push((nodes, item.tag));
+        groups.push(nodes);
     }
-    let sub = merge_with_meta(groups);
+    let sub = merge_subscriptions(groups);
     match target {
         OutputFormat::Clash => {
             let tpl = opt.clash_template.unwrap_or_default();
