@@ -1,16 +1,14 @@
-pub mod api;
+mod api;
 pub mod emit;
-pub mod error;
+mod error;
 pub mod formats;
 pub mod ir;
-pub mod merge;
+mod merge;
 pub mod parse;
 pub mod template;
 
 pub use api::{InputFormat, InputItem, OutputFormat, convert, detect_format};
 pub use error::{Error, Result};
-pub use ir::*;
-pub use parse::Parser;
 
 #[cfg(test)]
 mod tests {

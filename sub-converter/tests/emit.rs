@@ -1,49 +1,19 @@
-use sub_converter::emit::{Emitter, clash::ClashEmitter, sing_box::SingBoxEmitter};
+use sub_converter::{InputFormat, InputItem, convert};
 use sub_converter::formats::{ClashConfig, SingBoxConfig};
-use sub_converter::ir::{Node, Protocol, Subscription, Tls};
 use sub_converter::template::Template;
 
-fn build_sub() -> Subscription {
-    Subscription {
-        nodes: vec![
-            Node {
-                name: "A".into(),
-                server: "a.com".into(),
-                port: 123,
-                protocol: Protocol::Shadowsocks {
-                    method: "aes-256-gcm".into(),
-                    password: "pass".into(),
-                },
-                transport: None,
-                tls: None,
-                tags: vec![],
-            },
-            Node {
-                name: "B".into(),
-                server: "b.com".into(),
-                port: 443,
-                protocol: Protocol::Trojan {
-                    password: "pwd".into(),
-                },
-                transport: None,
-                tls: Some(Tls {
-                    enabled: true,
-                    server_name: Some("b.com".into()),
-                    alpn: None,
-                    insecure: None,
-                    utls_fingerprint: None,
-                }),
-                tags: vec![],
-            },
-        ],
-    }
+fn build_inputs() -> Vec<InputItem> {
+    // A: ss, B: trojan
+    let uris = "ss://YWVzLTI1Ni1nY206cGFzcw@a.com:123#A\n\
+                trojan://pwd@b.com:443#B";
+    vec![InputItem { format: InputFormat::UriList, content: uris.to_string() }]
 }
 
 #[test]
 fn emit_clash_yaml() {
-    let sub = build_sub();
+    let inputs = build_inputs();
     let tpl = Template::Clash(ClashConfig::default());
-    let s = ClashEmitter.emit(sub, tpl).expect("emit clash");
+    let s = convert(inputs, tpl).expect("emit clash");
     assert!(s.contains("proxies"));
     assert!(s.contains("type: ss"));
     assert!(s.contains("type: trojan"));
@@ -51,9 +21,9 @@ fn emit_clash_yaml() {
 
 #[test]
 fn emit_singbox_json() {
-    let sub = build_sub();
+    let inputs = build_inputs();
     let tpl = Template::SingBox(SingBoxConfig::default());
-    let s = SingBoxEmitter.emit(sub, tpl).expect("emit sb");
+    let s = convert(inputs, tpl).expect("emit sb");
     assert!(s.contains("outbounds"));
     assert!(s.contains("\"type\": \"shadowsocks\""));
     assert!(s.contains("\"type\": \"trojan\""));
@@ -61,8 +31,6 @@ fn emit_singbox_json() {
 
 #[test]
 fn emit_clash_with_all_proxies_placeholder() {
-    let sub = build_sub();
-
     // Create a template with {{all_proxies}} placeholder
     let template_yaml = r#"
 mode: rule
@@ -85,28 +53,22 @@ rules:
 "#;
 
     let tpl: ClashConfig = serde_yaml::from_str(template_yaml).expect("parse template");
-    let s = ClashEmitter
-        .emit(sub, Template::Clash(tpl))
-        .expect("emit clash");
 
-    // Verify that {{all_proxies}} was replaced with actual proxy names
+    let inputs = build_inputs();
+    let s = convert(inputs, Template::Clash(tpl)).expect("emit clash");
+
     assert!(s.contains("- A"));
     assert!(s.contains("- B"));
-
-    // Verify the placeholder is gone
     assert!(!s.contains("{{all_proxies}}"));
 
-    // Both proxy groups should have the expanded proxies
     let yaml: serde_yaml::Value = serde_yaml::from_str(&s).expect("parse output");
     let groups = yaml["proxy-groups"].as_sequence().expect("proxy-groups");
 
-    // Check Proxies group
     let proxies_group = &groups[0];
     let proxies_list = proxies_group["proxies"].as_sequence().expect("proxies");
     assert!(proxies_list.iter().any(|v| v.as_str() == Some("A")));
     assert!(proxies_list.iter().any(|v| v.as_str() == Some("B")));
 
-    // Check Auto group
     let auto_group = &groups[1];
     let auto_list = auto_group["proxies"].as_sequence().expect("proxies");
     assert!(auto_list.iter().any(|v| v.as_str() == Some("A")));
