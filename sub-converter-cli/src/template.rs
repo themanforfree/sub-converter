@@ -4,29 +4,36 @@
 //! Clash and SingBox configurations.
 
 use anyhow::{Context, Result};
-use std::fs;
-use sub_converter::template::{ClashTemplate, SingBoxTemplate};
-use sub_converter::{BuildOptions, OutputFormat};
+use sub_converter::OutputFormat;
+use sub_converter::formats::{ClashConfig, SingBoxConfig};
+use sub_converter::template::Template;
 
-/// Load template file
-pub fn load_template(path: &str, format: OutputFormat) -> Result<BuildOptions> {
-    let content = fs::read_to_string(path)
-        .with_context(|| format!("Failed to read template file: {}", path))?;
-
-    let mut opt = BuildOptions::default();
-
-    match format {
-        OutputFormat::Clash => {
-            let template: ClashTemplate = serde_yaml::from_str(&content)
-                .with_context(|| format!("Failed to parse Clash template file: {}", path))?;
-            opt.clash_template = Some(template);
-        }
-        OutputFormat::SingBox => {
-            let template: SingBoxTemplate = serde_json::from_str(&content)
-                .with_context(|| format!("Failed to parse SingBox template file: {}", path))?;
-            opt.singbox_template = Some(template);
-        }
+/// Load template from target and optional template file
+pub fn load_template(target: OutputFormat, template_path: Option<&str>) -> Result<Template> {
+    match (target, template_path) {
+        (OutputFormat::Clash, Some(path)) => load_clash_template(path),
+        (OutputFormat::SingBox, Some(path)) => load_singbox_template(path),
+        (OutputFormat::Clash, None) => Ok(Template::Clash(ClashConfig::default())),
+        (OutputFormat::SingBox, None) => Ok(Template::SingBox(SingBoxConfig::default())),
     }
+}
 
-    Ok(opt)
+fn load_clash_template(path: &str) -> Result<Template> {
+    let content = std::fs::read_to_string(path)
+        .with_context(|| format!("Failed to read Clash template file: {}", path))?;
+
+    let config: ClashConfig = serde_yaml::from_str(&content)
+        .with_context(|| format!("Failed to parse Clash template file: {}", path))?;
+
+    Ok(Template::Clash(config))
+}
+
+fn load_singbox_template(path: &str) -> Result<Template> {
+    let content = std::fs::read_to_string(path)
+        .with_context(|| format!("Failed to read SingBox template file: {}", path))?;
+
+    let config: SingBoxConfig = serde_json::from_str(&content)
+        .with_context(|| format!("Failed to parse SingBox template file: {}", path))?;
+
+    Ok(Template::SingBox(config))
 }

@@ -1,6 +1,7 @@
 use sub_converter::emit::{Emitter, clash::ClashEmitter, sing_box::SingBoxEmitter};
+use sub_converter::formats::{ClashConfig, SingBoxConfig};
 use sub_converter::ir::{Node, Protocol, Subscription, Tls};
-use sub_converter::template::{ClashTemplate, SingBoxTemplate, Template};
+use sub_converter::template::Template;
 
 fn build_sub() -> Subscription {
     Subscription {
@@ -41,7 +42,7 @@ fn build_sub() -> Subscription {
 #[test]
 fn emit_clash_yaml() {
     let sub = build_sub();
-    let tpl = Template::Clash(ClashTemplate::default());
+    let tpl = Template::Clash(ClashConfig::default());
     let s = ClashEmitter.emit(&sub, &tpl).expect("emit clash");
     assert!(s.contains("proxies"));
     assert!(s.contains("type: ss"));
@@ -51,7 +52,7 @@ fn emit_clash_yaml() {
 #[test]
 fn emit_singbox_json() {
     let sub = build_sub();
-    let tpl = Template::SingBox(SingBoxTemplate::default());
+    let tpl = Template::SingBox(SingBoxConfig::default());
     let s = SingBoxEmitter.emit(&sub, &tpl).expect("emit sb");
     assert!(s.contains("outbounds"));
     assert!(s.contains("\"type\": \"shadowsocks\""));
@@ -83,7 +84,7 @@ rules:
   - MATCH,Proxies
 "#;
 
-    let tpl: ClashTemplate = serde_yaml::from_str(template_yaml).expect("parse template");
+    let tpl: ClashConfig = serde_yaml::from_str(template_yaml).expect("parse template");
     let s = ClashEmitter
         .emit(&sub, &Template::Clash(tpl))
         .expect("emit clash");

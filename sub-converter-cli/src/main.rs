@@ -5,7 +5,7 @@ mod template;
 use anyhow::{Context, Result};
 use clap::Parser;
 use std::fs;
-use sub_converter::{Builder, detect_format};
+use sub_converter::{InputItem, convert, detect_format};
 
 use args::Args;
 use source::{fetch_content, parse_source_spec};
@@ -14,8 +14,8 @@ use template::load_template;
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    // Initialize Builder
-    let mut builder = Builder::new();
+    // Collect inputs
+    let mut inputs = Vec::with_capacity(args.sources.len());
 
     // Process each subscription source
     for (idx, source_spec_str) in args.sources.iter().enumerate() {
@@ -35,33 +35,19 @@ fn main() -> Result<()> {
 
         eprintln!("  Format: {:?}", format);
 
-        // Generate tag
-        let tag = format!("source-{}", idx + 1);
-
-        builder = builder.add_input(format, content, tag);
+        inputs.push(InputItem { format, content });
     }
 
-    // Set target format
-    builder = builder.target(args.target);
-
-    // Load template (if provided)
-    if let Some(template_path) = &args.template {
-        eprintln!("Loading template: {}", template_path);
-        let opt = load_template(template_path, args.target)?;
-
-        if let Some(clash_tpl) = opt.clash_template {
-            builder = builder.with_clash_template(clash_tpl);
-        }
-        if let Some(singbox_tpl) = opt.singbox_template {
-            builder = builder.with_singbox_template(singbox_tpl);
-        }
+    if inputs.is_empty() {
+        anyhow::bail!("No valid input sources provided");
     }
+
+    // Build options from target and template
+    let template = load_template(args.target, args.template.as_deref())?;
 
     // Generate output
     eprintln!("Generating configuration...");
-    let output_content = builder
-        .build()
-        .context("Failed to generate configuration")?;
+    let output_content = convert(inputs, template).context("Failed to generate configuration")?;
 
     // Write output
     if let Some(output_path) = &args.output {

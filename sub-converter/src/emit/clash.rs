@@ -1,61 +1,42 @@
-use crate::error::{Error, Result};
-use crate::ir::{Node, Protocol, Subscription};
-use crate::template::{ClashTemplate, ProxyGroup, Template};
-use serde::Serialize;
-use serde_yaml::Value;
+use crate::error::Result;
+use crate::formats::{ClashConfig, ClashProxy, ProxyGroup};
+use crate::ir::Subscription;
+use crate::template::Template;
 
 pub struct ClashEmitter;
 
-#[derive(Serialize)]
-struct ClashOut {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(flatten)]
-    general: Option<Value>,
-    proxies: Vec<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "proxy-groups")]
-    proxy_groups: Option<Vec<ProxyGroup>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    rules: Option<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    dns: Option<Value>,
-}
-
 impl super::Emitter for ClashEmitter {
     fn emit(&self, sub: &Subscription, tpl: &Template) -> Result<String> {
-        let Template::Clash(ClashTemplate {
-            general,
-            proxy_groups,
-            rules,
-            dns,
-        }) = tpl
-        else {
-            return Err(Error::EmitError {
+        let Template::Clash(clash_tpl) = tpl else {
+            return Err(crate::error::Error::EmitError {
                 detail: "expect clash template".into(),
             });
         };
-        let proxies: Vec<Value> = sub
+
+        let proxies: Vec<ClashProxy> = sub
             .nodes
             .iter()
-            .map(node_to_clash_proxy)
+            .map(TryInto::try_into)
             .collect::<Result<Vec<_>>>()?;
 
         // Collect all proxy names for template placeholder
         let proxy_names: Vec<String> = sub.nodes.iter().map(|n| n.name.clone()).collect();
 
         // Process proxy_groups to replace {{all_proxies}} placeholder
-        let processed_proxy_groups = proxy_groups
+        let processed_proxy_groups = clash_tpl
+            .proxy_groups
             .as_ref()
             .map(|groups| process_proxy_groups(groups, &proxy_names));
 
-        let out = ClashOut {
-            general: general.clone(),
+        let out = ClashConfig {
+            general: clash_tpl.general.clone(),
             proxies,
             proxy_groups: processed_proxy_groups,
-            rules: rules.clone(),
-            dns: dns.clone(),
+            rules: clash_tpl.rules.clone(),
+            dns: clash_tpl.dns.clone(),
         };
-        let s = serde_yaml::to_string(&out).map_err(|e| Error::EmitError {
+
+        let s = serde_yaml::to_string(&out).map_err(|e| crate::error::Error::EmitError {
             detail: format!("clash yaml emit: {e}"),
         })?;
         Ok(s)
@@ -64,61 +45,27 @@ impl super::Emitter for ClashEmitter {
 
 /// Process proxy groups to replace {{all_proxies}} placeholder
 fn process_proxy_groups(groups: &[ProxyGroup], proxy_names: &[String]) -> Vec<ProxyGroup> {
+    const ALL_PROXIES_PLACEHOLDER: &str = "{{all_proxies}}";
+
     groups
         .iter()
         .map(|group| {
             let mut group = group.clone();
             if let Some(proxies) = &mut group.proxies {
-                let mut new_proxies = Vec::new();
-                for proxy in proxies.iter() {
-                    if proxy == "{{all_proxies}}" {
-                        // Expand placeholder to all proxy names
-                        new_proxies.extend(proxy_names.iter().cloned());
-                    } else {
-                        new_proxies.push(proxy.clone());
-                    }
-                }
+                let new_proxies: Vec<String> = proxies
+                    .iter()
+                    .flat_map(|proxy| {
+                        if proxy == ALL_PROXIES_PLACEHOLDER {
+                            // Expand placeholder to all proxy names
+                            proxy_names.iter().cloned().collect::<Vec<_>>()
+                        } else {
+                            vec![proxy.clone()]
+                        }
+                    })
+                    .collect();
                 *proxies = new_proxies;
             }
             group
         })
         .collect()
-}
-
-fn node_to_clash_proxy(n: &Node) -> Result<Value> {
-    match &n.protocol {
-        Protocol::Shadowsocks { method, password } => {
-            let mut m = serde_yaml::Mapping::new();
-            m.insert(Value::from("name"), Value::from(n.name.clone()));
-            m.insert(Value::from("type"), Value::from("ss"));
-            m.insert(Value::from("server"), Value::from(n.server.clone()));
-            m.insert(Value::from("port"), Value::from(n.port));
-            m.insert(Value::from("cipher"), Value::from(method.clone()));
-            m.insert(Value::from("password"), Value::from(password.clone()));
-            Ok(Value::Mapping(m))
-        }
-        Protocol::Trojan { password } => {
-            let mut m = serde_yaml::Mapping::new();
-            m.insert(Value::from("name"), Value::from(n.name.clone()));
-            m.insert(Value::from("type"), Value::from("trojan"));
-            m.insert(Value::from("server"), Value::from(n.server.clone()));
-            m.insert(Value::from("port"), Value::from(n.port));
-            m.insert(Value::from("password"), Value::from(password.clone()));
-            if let Some(tls) = &n.tls {
-                if let Some(sni) = &tls.server_name {
-                    m.insert(Value::from("sni"), Value::from(sni.clone()));
-                }
-                if let Some(alpn) = &tls.alpn {
-                    m.insert(Value::from("alpn"), serde_yaml::to_value(alpn).unwrap());
-                }
-                if let Some(insecure) = tls.insecure {
-                    m.insert(Value::from("skip-cert-verify"), Value::from(insecure));
-                }
-            }
-            Ok(Value::Mapping(m))
-        }
-        _ => Err(Error::Unsupported {
-            what: "protocol for clash".into(),
-        }),
-    }
 }

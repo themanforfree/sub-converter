@@ -20,6 +20,17 @@ pub enum Protocol {
     },
 }
 
+impl Protocol {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Protocol::Shadowsocks { .. } => "shadowsocks",
+            Protocol::Trojan { .. } => "trojan",
+            Protocol::Vmess { .. } => "vmess",
+            Protocol::Vless { .. } => "vless",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "transport", rename_all = "kebab-case")]
 pub enum Transport {
