@@ -7,8 +7,8 @@ mode: rule
 log-level: info
 ipv6: false
 allow-lan: true
-bind-address: '*'
-  
+bind-address: "*"
+
 proxy-groups:
   - name: Proxies
     type: select
@@ -16,21 +16,21 @@ proxy-groups:
       - Automatic
       - DIRECT
       - "{{all_proxies}}"
-    
+
   - name: Automatic
     type: url-test
     url: http://www.gstatic.com/generate_204
     interval: 300
     proxies:
       - "{{all_proxies}}"
-    
+
   - name: OpenAI
     type: select
     proxies:
       - Proxies
       - DIRECT
       - "{{all_proxies}}"
-      
+
   - name: Apple
     type: select
     proxies:
@@ -52,145 +52,121 @@ rule-providers:
     path: ./rules/reject.yaml
     interval: 86400
     behavior: domain
-    
+
   AD:
     type: http
     url: https://raw.githubusercontent.com/earoftoast/clash-rules/main/AD.yaml
     path: ./rules/AD.yaml
     interval: 86400
     behavior: domain
-    
+
   EasyList:
     type: http
     url: https://raw.githubusercontent.com/earoftoast/clash-rules/main/EasyList.yaml
     path: ./rules/EasyList.yaml
     interval: 86400
     behavior: domain
-    
+
   EasyListChina:
     type: http
     url: https://raw.githubusercontent.com/earoftoast/clash-rules/main/EasyListChina.yaml
     path: ./rules/EasyListChina.yaml
     interval: 86400
     behavior: domain
-    
+
   EasyPrivacy:
     type: http
     url: https://raw.githubusercontent.com/earoftoast/clash-rules/main/EasyPrivacy.yaml
     path: ./rules/EasyPrivacy.yaml
     interval: 86400
     behavior: domain
-    
+
   ProgramAD:
     type: http
     url: https://raw.githubusercontent.com/earoftoast/clash-rules/main/ProgramAD.yaml
     path: ./rules/ProgramAD.yaml
     interval: 86400
     behavior: domain
-    
+
   private:
     type: http
     url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/private.txt
     path: ./rules/private.yaml
     interval: 86400
     behavior: domain
-    
+
   direct:
     type: http
     url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/direct.txt
     path: ./rules/direct.yaml
     interval: 86400
     behavior: domain
-    
-  proxy:
-    type: http
-    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/proxy.txt
-    path: ./rules/proxy.yaml
-    interval: 86400
-    behavior: domain
-    
+
   applications:
     type: http
     url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/applications.txt
     path: ./rules/applications.yaml
     interval: 86400
     behavior: classical
-    
+
   icloud:
     type: http
     url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/icloud.txt
     path: ./rules/icloud.yaml
     interval: 86400
     behavior: domain
-    
+
   apple:
     type: http
     url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/apple.txt
     path: ./rules/apple.yaml
     interval: 86400
     behavior: domain
-    
-  google:
-    type: http
-    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/google.txt
-    path: ./rules/google.yaml
-    interval: 86400
-    behavior: domain
-    
+
   openai:
     type: http
     url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/OpenAI/OpenAI.yaml
     path: ./rules/openai.yaml
     interval: 86400
     behavior: classical
-    
+
   crypto:
     type: http
     url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Crypto/Crypto.yaml
     path: ./rules/crypto.yaml
     interval: 86400
     behavior: classical
-    
+
   lancidr:
     type: http
     url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/lancidr.txt
     path: ./rules/lancidr.yaml
     interval: 86400
     behavior: ipcidr
-    
+
   cncidr:
     type: http
     url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/cncidr.txt
     path: ./rules/cncidr.yaml
     interval: 86400
     behavior: ipcidr
-    
-  telegramcidr:
-    type: http
-    url: https://cdn.jsdelivr.net/gh/Loyalsoldier/clash-rules@release/telegramcidr.txt
-    path: ./rules/telegramcidr.yaml
-    interval: 86400
-    behavior: ipcidr
 
 rules:
-  - RULE-SET,crypto,Crypto
-  - RULE-SET,applications,DIRECT
-  - RULE-SET,private,DIRECT
   - RULE-SET,reject,REJECT
   - RULE-SET,AD,REJECT
   - RULE-SET,EasyList,REJECT
   - RULE-SET,EasyListChina,REJECT
   - RULE-SET,EasyPrivacy,REJECT
   - RULE-SET,ProgramAD,REJECT
+  - RULE-SET,crypto,Crypto
   - RULE-SET,openai,OpenAI
-  - RULE-SET,icloud,Proxies
   - RULE-SET,apple,Apple
-  - RULE-SET,google,Proxies
-  - RULE-SET,proxy,Proxies
+  - RULE-SET,icloud,Apple
+  - RULE-SET,applications,DIRECT
+  - RULE-SET,private,DIRECT
   - RULE-SET,direct,DIRECT
   - RULE-SET,lancidr,DIRECT
   - RULE-SET,cncidr,DIRECT
-  - RULE-SET,telegramcidr,Proxies
   - GEOIP,LAN,DIRECT
   - GEOIP,CN,DIRECT
   - MATCH,Proxies
@@ -206,4 +182,3 @@ dns:
   fallback:
     - 8.8.8.8
     - 1.1.1.1
-
