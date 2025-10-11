@@ -11,21 +11,27 @@ use sub_converter::template::Template;
 /// Load template from target and optional template file
 pub fn load_template(target: OutputFormat, template_path: Option<&str>) -> Result<Template> {
     match (target, template_path) {
-        (OutputFormat::Clash, Some(path)) => load_clash_template(path),
+        (OutputFormat::Clash, Some(path)) => load_clash_template(path, false),
+        (OutputFormat::ClashJson, Some(path)) => load_clash_template(path, true),
         (OutputFormat::SingBox, Some(path)) => load_singbox_template(path),
         (OutputFormat::Clash, None) => Ok(Template::Clash(ClashConfig::default())),
+        (OutputFormat::ClashJson, None) => Ok(Template::ClashJson(ClashConfig::default())),
         (OutputFormat::SingBox, None) => Ok(Template::SingBox(SingBoxConfig::default())),
     }
 }
 
-fn load_clash_template(path: &str) -> Result<Template> {
+fn load_clash_template(path: &str, json: bool) -> Result<Template> {
     let content = std::fs::read_to_string(path)
         .with_context(|| format!("Failed to read Clash template file: {}", path))?;
 
     let config: ClashConfig = serde_yaml::from_str(&content)
         .with_context(|| format!("Failed to parse Clash template file: {}", path))?;
 
-    Ok(Template::Clash(config))
+    if json {
+        Ok(Template::ClashJson(config))
+    } else {
+        Ok(Template::Clash(config))
+    }
 }
 
 fn load_singbox_template(path: &str) -> Result<Template> {

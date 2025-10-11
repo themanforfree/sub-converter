@@ -11,7 +11,7 @@ use sub_converter::OutputFormat;
 pub struct Args {
     /// Subscription source list, format: source[:format]
     /// source can be a URL or file path
-    /// format options: clash, singbox, urilist
+    /// format options: clash, clash-json, singbox, urilist
     #[arg(required = true)]
     pub sources: Vec<String>,
 
@@ -36,9 +36,10 @@ pub struct Args {
 fn parse_output_format(s: &str) -> Result<OutputFormat> {
     match s.to_lowercase().as_str() {
         "clash" => Ok(OutputFormat::Clash),
+        "clash-json" => Ok(OutputFormat::ClashJson),
         "singbox" => Ok(OutputFormat::SingBox),
         _ => Err(anyhow!(
-            "Unsupported output format: {}, supported formats: clash, singbox",
+            "Unsupported output format: {}, supported formats: clash, clash-json, singbox",
             s
         )),
     }

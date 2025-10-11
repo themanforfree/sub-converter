@@ -7,10 +7,14 @@ pub struct ClashEmitter;
 
 impl super::Emitter for ClashEmitter {
     fn emit(&self, sub: Subscription, tpl: Template) -> Result<String> {
-        let Template::Clash(clash_tpl) = tpl else {
-            return Err(crate::error::Error::EmitError {
-                detail: "expect clash template".into(),
-            });
+        let (clash_tpl, json) = match tpl {
+            Template::Clash(t) => (t, false),
+            Template::ClashJson(t) => (t, true),
+            _ => {
+                return Err(crate::error::Error::EmitError {
+                    detail: "expect clash template".into(),
+                })
+            }
         };
 
         let proxies: Vec<ClashProxy> = sub
@@ -39,10 +43,15 @@ impl super::Emitter for ClashEmitter {
             dns: clash_tpl.dns,
         };
 
-        let s = serde_yaml::to_string(&out).map_err(|e| crate::error::Error::EmitError {
-            detail: format!("clash yaml emit: {e}"),
-        })?;
-        Ok(s)
+        if json {
+            let s = serde_json::to_string_pretty(&out)
+                .map_err(|e| crate::error::Error::EmitError { detail: format!("clash json emit: {e}") })?;
+            Ok(s)
+        } else {
+            let s = serde_yaml::to_string(&out)
+                .map_err(|e| crate::error::Error::EmitError { detail: format!("clash yaml emit: {e}") })?;
+            Ok(s)
+        }
     }
 }
 
