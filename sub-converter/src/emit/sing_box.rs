@@ -6,7 +6,7 @@ use crate::template::Template;
 pub struct SingBoxEmitter;
 
 impl super::Emitter for SingBoxEmitter {
-    fn emit(&self, sub: &Subscription, tpl: &Template) -> Result<String> {
+    fn emit(&self, sub: Subscription, tpl: Template) -> Result<String> {
         let Template::SingBox(sb_tpl) = tpl else {
             return Err(crate::error::Error::EmitError {
                 detail: "expect sing-box template".into(),
@@ -15,25 +15,30 @@ impl super::Emitter for SingBoxEmitter {
 
         let mut outbounds: Vec<SingBoxOutbound> = sub
             .nodes
-            .iter()
+            .into_iter()
             .map(TryInto::try_into)
             .collect::<Result<Vec<_>>>()?;
 
-        let proxy_names: Vec<String> = sub.nodes.iter().map(|n| n.name.clone()).collect();
+        let proxy_names: Vec<String> = outbounds
+            .iter()
+            .filter_map(|o| match o {
+                SingBoxOutbound::Shadowsocks { tag, .. } => tag.clone(),
+                SingBoxOutbound::Trojan { tag, .. } => tag.clone(),
+                _ => None,
+            })
+            .collect();
 
         let processed_template_outbounds = process_outbounds(&sb_tpl.outbounds, &proxy_names);
 
         let mut final_outbounds = processed_template_outbounds;
         final_outbounds.append(&mut outbounds);
 
-        let dns = sb_tpl.dns.clone();
-
         let out = SingBoxConfig {
-            general: sb_tpl.general.clone(),
-            inbounds: sb_tpl.inbounds.clone(),
+            general: sb_tpl.general,
+            inbounds: sb_tpl.inbounds,
             outbounds: final_outbounds,
-            route: sb_tpl.route.clone(),
-            dns,
+            route: sb_tpl.route,
+            dns: sb_tpl.dns,
         };
 
         let s = serde_json::to_string_pretty(&out).map_err(|e| crate::error::Error::EmitError {

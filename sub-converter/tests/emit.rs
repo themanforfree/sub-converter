@@ -43,7 +43,7 @@ fn build_sub() -> Subscription {
 fn emit_clash_yaml() {
     let sub = build_sub();
     let tpl = Template::Clash(ClashConfig::default());
-    let s = ClashEmitter.emit(&sub, &tpl).expect("emit clash");
+    let s = ClashEmitter.emit(sub, tpl).expect("emit clash");
     assert!(s.contains("proxies"));
     assert!(s.contains("type: ss"));
     assert!(s.contains("type: trojan"));
@@ -53,7 +53,7 @@ fn emit_clash_yaml() {
 fn emit_singbox_json() {
     let sub = build_sub();
     let tpl = Template::SingBox(SingBoxConfig::default());
-    let s = SingBoxEmitter.emit(&sub, &tpl).expect("emit sb");
+    let s = SingBoxEmitter.emit(sub, tpl).expect("emit sb");
     assert!(s.contains("outbounds"));
     assert!(s.contains("\"type\": \"shadowsocks\""));
     assert!(s.contains("\"type\": \"trojan\""));
@@ -86,7 +86,7 @@ rules:
 
     let tpl: ClashConfig = serde_yaml::from_str(template_yaml).expect("parse template");
     let s = ClashEmitter
-        .emit(&sub, &Template::Clash(tpl))
+        .emit(sub, Template::Clash(tpl))
         .expect("emit clash");
 
     // Verify that {{all_proxies}} was replaced with actual proxy names

@@ -91,7 +91,7 @@ pub fn convert(inputs: Vec<InputItem>, template: Template) -> Result<String> {
     let subscription = merge_subscriptions(groups);
 
     match template.target() {
-        OutputFormat::Clash => ClashEmitter.emit(&subscription, &template),
-        OutputFormat::SingBox => SingBoxEmitter.emit(&subscription, &template),
+        OutputFormat::Clash => ClashEmitter.emit(subscription, template),
+        OutputFormat::SingBox => SingBoxEmitter.emit(subscription, template),
     }
 }

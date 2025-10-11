@@ -6,7 +6,7 @@ use crate::template::Template;
 pub struct ClashEmitter;
 
 impl super::Emitter for ClashEmitter {
-    fn emit(&self, sub: &Subscription, tpl: &Template) -> Result<String> {
+    fn emit(&self, sub: Subscription, tpl: Template) -> Result<String> {
         let Template::Clash(clash_tpl) = tpl else {
             return Err(crate::error::Error::EmitError {
                 detail: "expect clash template".into(),
@@ -15,25 +15,28 @@ impl super::Emitter for ClashEmitter {
 
         let proxies: Vec<ClashProxy> = sub
             .nodes
-            .iter()
+            .into_iter()
             .map(TryInto::try_into)
             .collect::<Result<Vec<_>>>()?;
 
-        // Collect all proxy names for template placeholder
-        let proxy_names: Vec<String> = sub.nodes.iter().map(|n| n.name.clone()).collect();
+        let proxy_names: Vec<String> = proxies
+            .iter()
+            .map(|p| match p {
+                ClashProxy::Ss { name, .. } | ClashProxy::Trojan { name, .. } => name.clone(),
+            })
+            .collect();
 
-        // Process proxy_groups to replace {{all_proxies}} placeholder
         let processed_proxy_groups = clash_tpl
             .proxy_groups
             .as_ref()
             .map(|groups| process_proxy_groups(groups, &proxy_names));
 
         let out = ClashConfig {
-            general: clash_tpl.general.clone(),
+            general: clash_tpl.general,
             proxies,
             proxy_groups: processed_proxy_groups,
-            rules: clash_tpl.rules.clone(),
-            dns: clash_tpl.dns.clone(),
+            rules: clash_tpl.rules,
+            dns: clash_tpl.dns,
         };
 
         let s = serde_yaml::to_string(&out).map_err(|e| crate::error::Error::EmitError {

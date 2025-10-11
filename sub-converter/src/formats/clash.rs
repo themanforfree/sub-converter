@@ -204,55 +204,62 @@ impl From<ClashProxy> for Node {
 }
 
 // Conversion from Node to ClashProxy (fallible)
-impl TryFrom<&Node> for ClashProxy {
+impl TryFrom<Node> for ClashProxy {
     type Error = Error;
 
-    fn try_from(node: &Node) -> Result<Self> {
-        match &node.protocol {
+    fn try_from(node: Node) -> Result<Self> {
+        let Node {
+            name,
+            server,
+            port,
+            protocol,
+            tls,
+            ..
+        } = node;
+
+        match protocol {
             Protocol::Shadowsocks { method, password } => {
                 if method.is_empty() || password.is_empty() {
                     return Err(Error::ValidationError {
                         reason: format!(
                             "Empty method or password for Shadowsocks node: {}",
-                            node.name
+                            name
                         ),
                     });
                 }
 
                 Ok(ClashProxy::Ss {
-                    name: node.name.clone(),
-                    server: node.server.clone(),
-                    port: node.port,
-                    cipher: method.clone(),
-                    password: password.clone(),
+                    name,
+                    server,
+                    port,
+                    cipher: method,
+                    password,
                     udp: None,
                 })
             }
             Protocol::Trojan { password } => {
                 if password.is_empty() {
                     return Err(Error::ValidationError {
-                        reason: format!("Empty password for Trojan node: {}", node.name),
+                        reason: format!("Empty password for Trojan node: {}", name),
                     });
                 }
 
-                let (sni, alpn, skip_cert_verify) = node
-                    .tls
-                    .as_ref()
-                    .map(|tls| (tls.server_name.clone(), tls.alpn.clone(), tls.insecure))
+                let (sni, alpn, skip_cert_verify) = tls
+                    .map(|tls| (tls.server_name, tls.alpn, tls.insecure))
                     .unwrap_or((None, None, None));
 
                 Ok(ClashProxy::Trojan {
-                    name: node.name.clone(),
-                    server: node.server.clone(),
-                    port: node.port,
-                    password: password.clone(),
+                    name,
+                    server,
+                    port,
+                    password,
                     sni,
                     alpn,
                     skip_cert_verify,
                 })
             }
             _ => Err(Error::Unsupported {
-                what: format!("protocol '{}' for clash", node.protocol.name()),
+                what: format!("protocol '{}' for clash", protocol.name()),
             }),
         }
     }

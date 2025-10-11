@@ -174,6 +174,17 @@ impl From<&Tls> for SingBoxTls {
     }
 }
 
+impl From<Tls> for SingBoxTls {
+    fn from(tls: Tls) -> Self {
+        SingBoxTls {
+            enabled: Some(tls.enabled),
+            server_name: tls.server_name,
+            alpn: tls.alpn,
+            insecure: tls.insecure,
+        }
+    }
+}
+
 // Conversion from SingBoxOutbound to Node
 impl From<SingBoxOutbound> for Node {
     fn from(outbound: SingBoxOutbound) -> Self {
@@ -261,12 +272,11 @@ impl From<SingBoxOutbound> for Node {
     }
 }
 
-// Conversion from Node to SingBoxOutbound (fallible)
-impl TryFrom<&Node> for SingBoxOutbound {
+impl TryFrom<Node> for SingBoxOutbound {
     type Error = Error;
 
-    fn try_from(node: &Node) -> Result<Self> {
-        match &node.protocol {
+    fn try_from(node: Node) -> Result<Self> {
+        match node.protocol {
             Protocol::Shadowsocks { method, password } => {
                 if method.is_empty() || password.is_empty() {
                     return Err(Error::ValidationError {
@@ -278,11 +288,11 @@ impl TryFrom<&Node> for SingBoxOutbound {
                 }
 
                 Ok(SingBoxOutbound::Shadowsocks {
-                    tag: Some(node.name.clone()),
-                    server: node.server.clone(),
+                    tag: Some(node.name),
+                    server: node.server,
                     server_port: node.port,
-                    method: method.clone(),
-                    password: password.clone(),
+                    method,
+                    password,
                 })
             }
             Protocol::Trojan { password } => {
@@ -292,12 +302,12 @@ impl TryFrom<&Node> for SingBoxOutbound {
                     });
                 }
 
-                let tls = node.tls.as_ref().map(Into::into);
+                let tls = node.tls.map(Into::into);
                 Ok(SingBoxOutbound::Trojan {
-                    tag: Some(node.name.clone()),
-                    server: node.server.clone(),
+                    tag: Some(node.name),
+                    server: node.server,
                     server_port: node.port,
-                    password: password.clone(),
+                    password,
                     tls,
                 })
             }
@@ -307,3 +317,4 @@ impl TryFrom<&Node> for SingBoxOutbound {
         }
     }
 }
+

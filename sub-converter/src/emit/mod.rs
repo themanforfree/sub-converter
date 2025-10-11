@@ -6,5 +6,5 @@ pub mod clash;
 pub mod sing_box;
 
 pub trait Emitter {
-    fn emit(&self, sub: &Subscription, tpl: &Template) -> Result<String>;
+    fn emit(&self, sub: Subscription, tpl: Template) -> Result<String>;
 }
