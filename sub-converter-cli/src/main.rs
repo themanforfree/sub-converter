@@ -5,7 +5,7 @@ mod template;
 use anyhow::{Context, Result};
 use clap::Parser;
 use std::fs;
-use sub_converter::{InputItem, convert, detect_format};
+use sub_converter::{InputFormat, InputItem, convert, detect_format};
 
 use args::Args;
 use source::{fetch_content, parse_source_spec};
@@ -25,13 +25,12 @@ fn main() -> Result<()> {
         let content = fetch_content(&spec.source, args.retries)?;
 
         // Determine format
-        let format = if let Some(f) = spec.format {
-            f
-        } else {
+        let mut format = spec.format.unwrap_or(InputFormat::Auto);
+        if matches!(format, InputFormat::Auto) {
             eprintln!("  Auto-detecting format...");
-            detect_format(&content)
-                .with_context(|| format!("Failed to detect format for source: {}", spec.source))?
-        };
+            format = detect_format(&content)
+                .with_context(|| format!("Failed to detect format for source: {}", spec.source))?;
+        }
 
         eprintln!("  Format: {:?}", format);
 

@@ -26,11 +26,11 @@ mod tests {
             format: InputFormat::UriList,
             content: uris.to_string(),
         }];
-        let template = Template::Clash(ClashConfig::default());
+        let template = Template::ClashYaml(ClashConfig::default());
         let clash = convert(inputs.clone(), template).expect("clash output");
         assert!(clash.contains("proxies"));
 
-        let template = Template::SingBox(SingBoxConfig::default());
+        let template = Template::SingBoxJson(SingBoxConfig::default());
         let sb = convert(inputs, template).expect("sb output");
         assert!(sb.contains("outbounds"));
     }

@@ -221,10 +221,7 @@ impl TryFrom<Node> for ClashProxy {
             Protocol::Shadowsocks { method, password } => {
                 if method.is_empty() || password.is_empty() {
                     return Err(Error::ValidationError {
-                        reason: format!(
-                            "Empty method or password for Shadowsocks node: {}",
-                            name
-                        ),
+                        reason: format!("Empty method or password for Shadowsocks node: {}", name),
                     });
                 }
 

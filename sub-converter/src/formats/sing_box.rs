@@ -317,4 +317,3 @@ impl TryFrom<Node> for SingBoxOutbound {
         }
     }
 }
-

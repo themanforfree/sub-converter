@@ -1,6 +1,6 @@
-use sub_converter::{InputFormat, InputItem, convert};
-use sub_converter::template::Template;
 use sub_converter::formats::{ClashConfig, SingBoxConfig};
+use sub_converter::template::Template;
+use sub_converter::{InputFormat, InputItem, convert};
 
 #[test]
 fn parse_clash_minimal() {
@@ -19,8 +19,11 @@ proxies:
     password: pwd
     sni: b.com
 "#;
-    let inputs = vec![InputItem { format: InputFormat::Clash, content: yaml.into() }];
-    let out = convert(inputs, Template::Clash(ClashConfig::default())).expect("clash parse");
+    let inputs = vec![InputItem {
+        format: InputFormat::ClashYaml,
+        content: yaml.into(),
+    }];
+    let out = convert(inputs, Template::ClashYaml(ClashConfig::default())).expect("clash parse");
     assert!(out.contains("A"));
     assert!(out.contains("B"));
 }
@@ -33,8 +36,11 @@ fn parse_singbox_minimal() {
     {"type":"trojan","tag":"B","server":"b.com","server_port":443,"password":"pwd","tls":{"enabled":true,"server_name":"b.com"}}
   ]
 }"#;
-    let inputs = vec![InputItem { format: InputFormat::SingBox, content: json.into() }];
-    let out = convert(inputs, Template::SingBox(SingBoxConfig::default())).expect("sb parse");
+    let inputs = vec![InputItem {
+        format: InputFormat::SingBoxJson,
+        content: json.into(),
+    }];
+    let out = convert(inputs, Template::SingBoxJson(SingBoxConfig::default())).expect("sb parse");
     assert!(out.contains("A"));
     assert!(out.contains("B"));
 }

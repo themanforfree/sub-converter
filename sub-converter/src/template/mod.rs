@@ -5,17 +5,19 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub enum Template {
-    Clash(ClashConfig),
+    ClashYaml(ClashConfig),
     ClashJson(ClashConfig),
-    SingBox(SingBoxConfig),
+    SingBoxYaml(SingBoxConfig),
+    SingBoxJson(SingBoxConfig),
 }
 
 impl Template {
     pub fn target(&self) -> OutputFormat {
         match self {
-            Template::Clash(_) => OutputFormat::Clash,
+            Template::ClashYaml(_) => OutputFormat::ClashYaml,
             Template::ClashJson(_) => OutputFormat::ClashJson,
-            Template::SingBox(_) => OutputFormat::SingBox,
+            Template::SingBoxYaml(_) => OutputFormat::SingBoxYaml,
+            Template::SingBoxJson(_) => OutputFormat::SingBoxJson,
         }
     }
 }

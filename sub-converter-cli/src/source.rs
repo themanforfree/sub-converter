@@ -28,12 +28,14 @@ pub fn parse_source_spec(spec: &str) -> Result<SourceSpec> {
 
         // Try to parse format
         let format = match format_str.to_lowercase().as_str() {
-            "clash" => Some(InputFormat::Clash),
-            "singbox" => Some(InputFormat::SingBox),
+            "auto" => Some(InputFormat::Auto),
+            "clash-yaml" => Some(InputFormat::ClashYaml),
+            "clash-json" => Some(InputFormat::ClashJson),
+            "singbox-yaml" => Some(InputFormat::SingBoxYaml),
+            "singbox-json" => Some(InputFormat::SingBoxJson),
             "urilist" => Some(InputFormat::UriList),
+            "urilist-b64" => Some(InputFormat::UriListBase64),
             _ => {
-                // If not a valid format name, this : is part of the path or URL
-                // e.g., http:// or C:\
                 return Ok(SourceSpec {
                     source: spec.to_string(),
                     format: None,
@@ -90,7 +92,7 @@ pub fn fetch_content(source: &str, retries: u32) -> Result<String> {
         fs::read_to_string(source).with_context(|| format!("Failed to read file: {}", source))?
     };
 
-    // Try to decode base64 if applicable
+    // Try to decode base64 if applicable for uri-list
     Ok(try_decode_base64(content))
 }
 

@@ -1,18 +1,21 @@
-use sub_converter::{InputFormat, InputItem, convert};
 use sub_converter::formats::{ClashConfig, SingBoxConfig};
 use sub_converter::template::Template;
+use sub_converter::{InputFormat, InputItem, convert};
 
 fn build_inputs() -> Vec<InputItem> {
     // A: ss, B: trojan
     let uris = "ss://YWVzLTI1Ni1nY206cGFzcw@a.com:123#A\n\
                 trojan://pwd@b.com:443#B";
-    vec![InputItem { format: InputFormat::UriList, content: uris.to_string() }]
+    vec![InputItem {
+        format: InputFormat::UriList,
+        content: uris.to_string(),
+    }]
 }
 
 #[test]
 fn emit_clash_yaml() {
     let inputs = build_inputs();
-    let tpl = Template::Clash(ClashConfig::default());
+    let tpl = Template::ClashYaml(ClashConfig::default());
     let s = convert(inputs, tpl).expect("emit clash");
     assert!(s.contains("proxies"));
     assert!(s.contains("type: ss"));
@@ -22,7 +25,7 @@ fn emit_clash_yaml() {
 #[test]
 fn emit_singbox_json() {
     let inputs = build_inputs();
-    let tpl = Template::SingBox(SingBoxConfig::default());
+    let tpl = Template::SingBoxJson(SingBoxConfig::default());
     let s = convert(inputs, tpl).expect("emit sb");
     assert!(s.contains("outbounds"));
     assert!(s.contains("\"type\": \"shadowsocks\""));
@@ -55,7 +58,7 @@ rules:
     let tpl: ClashConfig = serde_yaml::from_str(template_yaml).expect("parse template");
 
     let inputs = build_inputs();
-    let s = convert(inputs, Template::Clash(tpl)).expect("emit clash");
+    let s = convert(inputs, Template::ClashYaml(tpl)).expect("emit clash");
 
     assert!(s.contains("- A"));
     assert!(s.contains("- B"));

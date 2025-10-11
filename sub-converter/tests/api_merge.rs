@@ -1,6 +1,6 @@
-use sub_converter::{InputFormat, InputItem, convert};
 use sub_converter::formats::ClashConfig;
 use sub_converter::template::Template;
+use sub_converter::{InputFormat, InputItem, convert};
 
 #[test]
 fn merge_order_preserved_and_no_dedup() {
@@ -12,11 +12,20 @@ proxies:
     let uris = "ss://YWVzLTI1Ni1nY206cA@c.com:3#C\nss://YWVzLTI1Ni1nY206cA@c.com:3#C";
 
     let inputs = vec![
-        InputItem { format: InputFormat::Clash, content: clash.to_string() },
-        InputItem { format: InputFormat::SingBox, content: sb.to_string() },
-        InputItem { format: InputFormat::UriList, content: uris.to_string() },
+        InputItem {
+            format: InputFormat::ClashYaml,
+            content: clash.to_string(),
+        },
+        InputItem {
+            format: InputFormat::SingBoxJson,
+            content: sb.to_string(),
+        },
+        InputItem {
+            format: InputFormat::UriList,
+            content: uris.to_string(),
+        },
     ];
-    let template = Template::Clash(ClashConfig::default());
+    let template = Template::ClashYaml(ClashConfig::default());
     let out = convert(inputs, template).expect("convert");
 
     assert!(out.contains("name: A"));

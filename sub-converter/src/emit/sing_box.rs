@@ -7,10 +7,14 @@ pub struct SingBoxEmitter;
 
 impl super::Emitter for SingBoxEmitter {
     fn emit(&self, sub: Subscription, tpl: Template) -> Result<String> {
-        let Template::SingBox(sb_tpl) = tpl else {
-            return Err(crate::error::Error::EmitError {
-                detail: "expect sing-box template".into(),
-            });
+        let (sb_tpl, json) = match tpl {
+            Template::SingBoxJson(t) => (t, true),
+            Template::SingBoxYaml(t) => (t, false),
+            _ => {
+                return Err(crate::error::Error::EmitError {
+                    detail: "expect sing-box template".into(),
+                });
+            }
         };
 
         let mut outbounds: Vec<SingBoxOutbound> = sub
@@ -41,10 +45,21 @@ impl super::Emitter for SingBoxEmitter {
             dns: sb_tpl.dns,
         };
 
-        let s = serde_json::to_string_pretty(&out).map_err(|e| crate::error::Error::EmitError {
-            detail: format!("sing-box json emit: {e}"),
-        })?;
-        Ok(s)
+        if json {
+            let s =
+                serde_json::to_string_pretty(&out).map_err(|e| crate::error::Error::EmitError {
+                    detail: format!("sing-box json emit: {e}"),
+                })?;
+            Ok(s)
+        } else {
+            let v = serde_json::to_value(&out).map_err(|e| crate::error::Error::EmitError {
+                detail: format!("sing-box yaml to_value: {e}"),
+            })?;
+            let s = serde_yaml::to_string(&v).map_err(|e| crate::error::Error::EmitError {
+                detail: format!("sing-box yaml emit: {e}"),
+            })?;
+            Ok(s)
+        }
     }
 }
 
