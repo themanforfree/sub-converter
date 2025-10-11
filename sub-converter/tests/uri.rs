@@ -46,7 +46,7 @@ fn trojan_uri_with_extended_params() {
 
     // Check TLS config
     let tls = n.tls.expect("tls should be present");
-    assert_eq!(tls.enabled, true);
+    assert!(tls.enabled);
     assert_eq!(tls.server_name.as_deref(), Some("applehk1.zymnode.cc"));
     assert_eq!(tls.insecure, Some(false)); // allowInsecure=0 means insecure=false
 

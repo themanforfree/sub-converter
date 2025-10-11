@@ -26,6 +26,29 @@ pub enum SingBoxOutbound {
         #[serde(skip_serializing_if = "Option::is_none")]
         tls: Option<SingBoxTls>,
     },
+    Selector {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        tag: Option<String>,
+        outbounds: Vec<String>,
+    },
+    Urltest {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        tag: Option<String>,
+        outbounds: Vec<String>,
+        url: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        interval: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        tolerance: Option<u32>,
+    },
+    Direct {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        tag: Option<String>,
+    },
+    Block {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        tag: Option<String>,
+    },
 }
 
 /// Sing-Box TLS configuration
@@ -183,6 +206,55 @@ impl From<SingBoxOutbound> for Node {
                 protocol: Protocol::Trojan { password },
                 transport: None,
                 tls: tls.map(Into::into),
+                tags: Vec::new(),
+            },
+            // Proxy group types cannot be converted to individual nodes
+            SingBoxOutbound::Selector { tag, .. } => Node {
+                name: tag.unwrap_or_else(|| "selector".to_string()),
+                server: String::new(),
+                port: 0,
+                protocol: Protocol::Shadowsocks {
+                    method: "dummy".to_string(),
+                    password: "dummy".to_string(),
+                },
+                transport: None,
+                tls: None,
+                tags: Vec::new(),
+            },
+            SingBoxOutbound::Urltest { tag, .. } => Node {
+                name: tag.unwrap_or_else(|| "urltest".to_string()),
+                server: String::new(),
+                port: 0,
+                protocol: Protocol::Shadowsocks {
+                    method: "dummy".to_string(),
+                    password: "dummy".to_string(),
+                },
+                transport: None,
+                tls: None,
+                tags: Vec::new(),
+            },
+            SingBoxOutbound::Direct { tag } => Node {
+                name: tag.unwrap_or_else(|| "direct".to_string()),
+                server: String::new(),
+                port: 0,
+                protocol: Protocol::Shadowsocks {
+                    method: "dummy".to_string(),
+                    password: "dummy".to_string(),
+                },
+                transport: None,
+                tls: None,
+                tags: Vec::new(),
+            },
+            SingBoxOutbound::Block { tag } => Node {
+                name: tag.unwrap_or_else(|| "block".to_string()),
+                server: String::new(),
+                port: 0,
+                protocol: Protocol::Shadowsocks {
+                    method: "dummy".to_string(),
+                    password: "dummy".to_string(),
+                },
+                transport: None,
+                tls: None,
                 tags: Vec::new(),
             },
         }

@@ -1,13 +1,136 @@
 {
     "log": {
+        "disabled": false,
         "level": "info"
     },
     "inbounds": [
         {
-            "type": "mixed",
-            "tag": "mixed-in",
-            "listen": "127.0.0.1",
-            "listen_port": 7890
+            "type": "tun",
+            "auto_route": true,
+            "strict_route": true,
+            "stack": "gvisor",
+            "address": [
+                "172.18.0.1/30",
+                "fdfe:dcba:9876::1/126"
+            ]
         }
-    ]
+    ],
+    "outbounds": [
+        {
+            "tag": "direct",
+            "type": "direct"
+        },
+        {
+            "tag": "select",
+            "type": "selector",
+            "outbounds": [
+                "direct",
+                "{{all_proxies}}"
+            ]
+        }
+    ],
+    "dns": {
+        "servers": [
+            {
+                "tag": "cloudflare",
+                "type": "https",
+                "server": "1.1.1.1",
+                "detour": "select",
+                "tls": {
+                    "enabled": true
+                }
+            },
+            {
+                "tag": "alidns",
+                "type": "https",
+                "server": "223.5.5.5",
+                "tls": {
+                    "enabled": true
+                }
+            }
+        ],
+        "rules": [
+            {
+                "action": "route",
+                "rule_set": [
+                    "geosite-private",
+                    "geosite-connectivity-check",
+                    "geosite-cn"
+                ],
+                "server": "alidns"
+            }
+        ],
+        "final": "cloudflare",
+        "client_subnet": "114.114.114.114/24"
+    },
+    "route": {
+        "auto_detect_interface": true,
+        "default_domain_resolver": "alidns",
+        "rules": [
+            {
+                "action": "sniff",
+                "sniffer": [
+                    "dns"
+                ]
+            },
+            {
+                "action": "hijack-dns",
+                "protocol": "dns"
+            },
+            {
+                "action": "route",
+                "rule_set": [
+                    "geoip-private",
+                    "geoip-cn",
+                    "geosite-private",
+                    "geosite-connectivity-check",
+                    "geosite-cn"
+                ],
+                "outbound": "direct"
+            }
+        ],
+        "final": "select",
+        "rule_set": [
+            {
+                "tag": "geoip-private",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://sub.eaimty.com/asset?token=Xt2keA6nECF3t2tA&format=srs&type=geoip&set=private",
+                "download_detour": "direct",
+                "update_interval": "1d"
+            },
+            {
+                "tag": "geoip-cn",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://sub.eaimty.com/asset?token=Xt2keA6nECF3t2tA&format=srs&type=geoip&set=cn",
+                "download_detour": "direct",
+                "update_interval": "1d"
+            },
+            {
+                "tag": "geosite-private",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://sub.eaimty.com/asset?token=Xt2keA6nECF3t2tA&format=srs&type=geosite&set=private",
+                "download_detour": "direct",
+                "update_interval": "1d"
+            },
+            {
+                "tag": "geosite-connectivity-check",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://sub.eaimty.com/asset?token=Xt2keA6nECF3t2tA&format=srs&type=geosite&set=connectivity-check",
+                "download_detour": "direct",
+                "update_interval": "1d"
+            },
+            {
+                "tag": "geosite-cn",
+                "type": "remote",
+                "format": "binary",
+                "url": "https://sub.eaimty.com/asset?token=Xt2keA6nECF3t2tA&format=srs&type=geosite&set=cn",
+                "download_detour": "direct",
+                "update_interval": "1d"
+            }
+        ]
+    }
 }

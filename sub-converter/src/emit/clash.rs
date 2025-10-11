@@ -57,7 +57,7 @@ fn process_proxy_groups(groups: &[ProxyGroup], proxy_names: &[String]) -> Vec<Pr
                     .flat_map(|proxy| {
                         if proxy == ALL_PROXIES_PLACEHOLDER {
                             // Expand placeholder to all proxy names
-                            proxy_names.iter().cloned().collect::<Vec<_>>()
+                            proxy_names.to_vec()
                         } else {
                             vec![proxy.clone()]
                         }
