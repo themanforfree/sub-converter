@@ -1,5 +1,5 @@
 use crate::error::{Error, Result};
-use crate::ir::{Node, Protocol, Tls};
+use crate::ir::{Node, Protocol, Subscription, Tls};
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::collections::BTreeMap;
@@ -260,4 +260,61 @@ impl TryFrom<Node> for ClashProxy {
             }),
         }
     }
+}
+
+impl From<(&Subscription, &ClashConfig)> for ClashConfig {
+    fn from((sub, tpl): (&Subscription, &ClashConfig)) -> Self {
+        // nodes -> proxies
+        let proxies: Vec<ClashProxy> = sub
+            .nodes
+            .clone()
+            .into_iter()
+            .map(|n| n.try_into())
+            .filter_map(Result::ok)
+            .collect();
+
+        let proxy_names: Vec<String> = proxies
+            .iter()
+            .map(|p| match p {
+                ClashProxy::Ss { name, .. } | ClashProxy::Trojan { name, .. } => name.clone(),
+            })
+            .collect();
+
+        let processed_proxy_groups = tpl
+            .proxy_groups
+            .as_ref()
+            .map(|groups| process_proxy_groups(groups, &proxy_names));
+
+        ClashConfig {
+            general: tpl.general.clone(),
+            proxies,
+            proxy_groups: processed_proxy_groups,
+            rules: tpl.rules.clone(),
+            dns: tpl.dns.clone(),
+        }
+    }
+}
+
+fn process_proxy_groups(groups: &[ProxyGroup], proxy_names: &[String]) -> Vec<ProxyGroup> {
+    const ALL_PROXIES_PLACEHOLDER: &str = "{{all_proxies}}";
+    groups
+        .iter()
+        .map(|group| {
+            let mut group = group.clone();
+            if let Some(proxies) = &mut group.proxies {
+                let new_proxies: Vec<String> = proxies
+                    .iter()
+                    .flat_map(|proxy| {
+                        if proxy == ALL_PROXIES_PLACEHOLDER {
+                            proxy_names.to_vec()
+                        } else {
+                            vec![proxy.clone()]
+                        }
+                    })
+                    .collect();
+                *proxies = new_proxies;
+            }
+            group
+        })
+        .collect()
 }

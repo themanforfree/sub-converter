@@ -317,3 +317,80 @@ impl TryFrom<Node> for SingBoxOutbound {
         }
     }
 }
+
+// Build final SingBoxConfig from IR + template
+impl From<(&crate::ir::Subscription, &SingBoxConfig)> for SingBoxConfig {
+    fn from((sub, tpl): (&crate::ir::Subscription, &SingBoxConfig)) -> Self {
+        let mut outbounds_from_ir: Vec<SingBoxOutbound> = sub
+            .nodes
+            .clone()
+            .into_iter()
+            .map(|n| n.try_into())
+            .filter_map(Result::ok)
+            .collect();
+
+        let proxy_names: Vec<String> = outbounds_from_ir
+            .iter()
+            .filter_map(|o| match o {
+                SingBoxOutbound::Shadowsocks { tag, .. } => tag.clone(),
+                SingBoxOutbound::Trojan { tag, .. } => tag.clone(),
+                _ => None,
+            })
+            .collect();
+
+        let processed_template_outbounds = process_outbounds(&tpl.outbounds, &proxy_names);
+
+        let mut final_outbounds = processed_template_outbounds;
+        final_outbounds.append(&mut outbounds_from_ir);
+
+        SingBoxConfig {
+            general: tpl.general.clone(),
+            inbounds: tpl.inbounds.clone(),
+            outbounds: final_outbounds,
+            route: tpl.route.clone(),
+            dns: tpl.dns.clone(),
+        }
+    }
+}
+
+fn expand_outbound_names(list: &[String], proxy_names: &[String]) -> Vec<String> {
+    const PH: &str = "{{all_proxies}}";
+    let mut v = Vec::with_capacity(list.len().saturating_mul(2));
+    for name in list {
+        if name == PH {
+            v.extend(proxy_names.iter().cloned());
+        } else {
+            v.push(name.clone());
+        }
+    }
+    v
+}
+
+fn process_outbounds(
+    outbounds: &[SingBoxOutbound],
+    proxy_names: &[String],
+) -> Vec<SingBoxOutbound> {
+    outbounds
+        .iter()
+        .map(|outbound| match outbound {
+            SingBoxOutbound::Selector { tag, outbounds } => SingBoxOutbound::Selector {
+                tag: tag.clone(),
+                outbounds: expand_outbound_names(outbounds, proxy_names),
+            },
+            SingBoxOutbound::Urltest {
+                tag,
+                outbounds,
+                url,
+                interval,
+                tolerance,
+            } => SingBoxOutbound::Urltest {
+                tag: tag.clone(),
+                outbounds: expand_outbound_names(outbounds, proxy_names),
+                url: url.clone(),
+                interval: interval.clone(),
+                tolerance: *tolerance,
+            },
+            _ => outbound.clone(),
+        })
+        .collect()
+}

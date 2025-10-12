@@ -2,7 +2,7 @@
 
 use anyhow::{Result, anyhow};
 use clap::Parser;
-use sub_converter::OutputFormat;
+use sub_converter::template::OutputEncoding;
 
 /// Subscription converter CLI tool
 #[derive(Parser, Debug)]
@@ -15,9 +15,9 @@ pub struct Args {
     #[arg(required = true)]
     pub sources: Vec<String>,
 
-    /// Output format
-    #[arg(short, long, value_parser = parse_output_format)]
-    pub target: OutputFormat,
+    /// Output encoding (json|yaml)
+    #[arg(short, long, value_parser = parse_output_encoding)]
+    pub encoding: OutputEncoding,
 
     /// Template file path
     #[arg(short = 'T', long)]
@@ -33,14 +33,12 @@ pub struct Args {
 }
 
 /// Parse output format
-fn parse_output_format(s: &str) -> Result<OutputFormat> {
+fn parse_output_encoding(s: &str) -> Result<OutputEncoding> {
     match s.to_lowercase().as_str() {
-        "clash-yaml" => Ok(OutputFormat::ClashYaml),
-        "clash-json" => Ok(OutputFormat::ClashJson),
-        "singbox-yaml" => Ok(OutputFormat::SingBoxYaml),
-        "singbox-json" => Ok(OutputFormat::SingBoxJson),
+        "json" => Ok(OutputEncoding::Json),
+        "yaml" => Ok(OutputEncoding::Yaml),
         _ => Err(anyhow!(
-            "Unsupported output format: {}, supported: clash-yaml, clash-json, singbox-yaml, singbox-json",
+            "Unsupported output encoding: {}, supported: json, yaml",
             s
         )),
     }

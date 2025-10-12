@@ -4,25 +4,24 @@
 //! Clash and SingBox configurations.
 
 use anyhow::{Context, Result};
-use sub_converter::OutputFormat;
 use sub_converter::formats::{ClashConfig, SingBoxConfig};
 use sub_converter::template::Template;
 
-/// Load template from target and optional template file
-pub fn load_template(target: OutputFormat, template_path: Option<&str>) -> Result<Template> {
+/// Load template from optional template file; default to empty configs
+pub fn load_template(target: &str, template_path: Option<&str>) -> Result<Template> {
     match (target, template_path) {
-        (OutputFormat::ClashYaml, Some(path)) => load_clash_template(path, false),
-        (OutputFormat::ClashJson, Some(path)) => load_clash_template(path, true),
-        (OutputFormat::SingBoxYaml, Some(path)) => load_singbox_template(path, false),
-        (OutputFormat::SingBoxJson, Some(path)) => load_singbox_template(path, true),
-        (OutputFormat::ClashYaml, None) => Ok(Template::ClashYaml(ClashConfig::default())),
-        (OutputFormat::ClashJson, None) => Ok(Template::ClashJson(ClashConfig::default())),
-        (OutputFormat::SingBoxYaml, None) => Ok(Template::SingBoxYaml(SingBoxConfig::default())),
-        (OutputFormat::SingBoxJson, None) => Ok(Template::SingBoxJson(SingBoxConfig::default())),
+        ("clash", Some(path)) => load_clash_template(path),
+        ("singbox", Some(path)) => load_singbox_template(path),
+        ("clash", None) => Ok(Template::Clash(ClashConfig::default())),
+        ("singbox", None) => Ok(Template::SingBox(SingBoxConfig::default())),
+        (other, _) => anyhow::bail!(
+            "Unsupported target: {}, expected 'clash' or 'singbox'",
+            other
+        ),
     }
 }
 
-fn load_clash_template(path: &str, json: bool) -> Result<Template> {
+fn load_clash_template(path: &str) -> Result<Template> {
     let content = std::fs::read_to_string(path)
         .with_context(|| format!("Failed to read Clash template file: {}", path))?;
 
@@ -30,18 +29,14 @@ fn load_clash_template(path: &str, json: bool) -> Result<Template> {
     let config: ClashConfig = serde_yaml::from_str(&content)
         .with_context(|| format!("Failed to parse Clash template file: {}", path))?;
 
-    if json {
-        Ok(Template::ClashJson(config))
-    } else {
-        Ok(Template::ClashYaml(config))
-    }
+    Ok(Template::Clash(config))
 }
 
-fn load_singbox_template(path: &str, json: bool) -> Result<Template> {
+fn load_singbox_template(path: &str) -> Result<Template> {
     let content = std::fs::read_to_string(path)
         .with_context(|| format!("Failed to read SingBox template file: {}", path))?;
 
-    let config: SingBoxConfig = if json {
+    let config: SingBoxConfig = if content.trim_start().starts_with('{') {
         serde_json::from_str(&content)
             .with_context(|| format!("Failed to parse SingBox JSON template: {}", path))?
     } else {
@@ -51,9 +46,5 @@ fn load_singbox_template(path: &str, json: bool) -> Result<Template> {
             .with_context(|| format!("Failed to convert SingBox YAML template: {}", path))?
     };
 
-    if json {
-        Ok(Template::SingBoxJson(config))
-    } else {
-        Ok(Template::SingBoxYaml(config))
-    }
+    Ok(Template::SingBox(config))
 }

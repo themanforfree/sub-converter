@@ -8,12 +8,10 @@ use base64::{Engine as _, engine::general_purpose};
 use std::fs;
 use std::thread;
 use std::time::Duration;
-use sub_converter::InputFormat;
 
 /// Source specification
 pub struct SourceSpec {
     pub source: String,
-    pub format: Option<InputFormat>,
 }
 
 /// Parse source specification
@@ -23,34 +21,13 @@ pub fn parse_source_spec(spec: &str) -> Result<SourceSpec> {
     // Strategy: find last : and check if it's followed by a valid format name
 
     if let Some(pos) = spec.rfind(':') {
-        let (source_part, format_part) = spec.split_at(pos);
-        let format_str = &format_part[1..]; // Skip :
-
-        // Try to parse format
-        let format = match format_str.to_lowercase().as_str() {
-            "auto" => Some(InputFormat::Auto),
-            "clash-yaml" => Some(InputFormat::ClashYaml),
-            "clash-json" => Some(InputFormat::ClashJson),
-            "singbox-yaml" => Some(InputFormat::SingBoxYaml),
-            "singbox-json" => Some(InputFormat::SingBoxJson),
-            "urilist" => Some(InputFormat::UriList),
-            "urilist-b64" => Some(InputFormat::UriListBase64),
-            _ => {
-                return Ok(SourceSpec {
-                    source: spec.to_string(),
-                    format: None,
-                });
-            }
-        };
-
+        let (source_part, _format_part) = spec.split_at(pos);
         Ok(SourceSpec {
             source: source_part.to_string(),
-            format,
         })
     } else {
         Ok(SourceSpec {
             source: spec.to_string(),
-            format: None,
         })
     }
 }

@@ -1,20 +1,20 @@
 mod api;
-pub mod emit;
 mod error;
 pub mod formats;
 pub mod ir;
-mod merge;
 pub mod parse;
 pub mod template;
 
-pub use api::{InputFormat, InputItem, OutputFormat, convert, detect_format};
+pub use api::{
+    OriginConfig, OriginKind, convert, convert_origin, detect_origin_kind, parse_origin,
+};
 pub use error::{Error, Result};
 
 #[cfg(test)]
 mod tests {
     use crate::{
         formats::{ClashConfig, SingBoxConfig},
-        template::Template,
+        template::{OutputEncoding, Template},
     };
 
     use super::*;
@@ -22,16 +22,25 @@ mod tests {
     #[test]
     fn smoke_uri_to_clash_and_singbox() {
         let uris = "trojan://pwd@a.com:443#A\nss://YWVzLTI1Ni1nY206cGFzczpQM0UjQCM=@b.com:123#B";
-        let inputs = vec![InputItem {
-            format: InputFormat::UriList,
-            content: uris.to_string(),
-        }];
-        let template = Template::ClashYaml(ClashConfig::default());
-        let clash = convert(inputs.clone(), template).expect("clash output");
+
+        // Clash YAML output
+        let clash = convert(
+            OriginKind::Auto,
+            uris,
+            Template::Clash(ClashConfig::default()),
+            OutputEncoding::Yaml,
+        )
+        .expect("clash output");
         assert!(clash.contains("proxies"));
 
-        let template = Template::SingBoxJson(SingBoxConfig::default());
-        let sb = convert(inputs, template).expect("sb output");
+        // SingBox JSON output
+        let sb = convert(
+            OriginKind::Auto,
+            uris,
+            Template::SingBox(SingBoxConfig::default()),
+            OutputEncoding::Json,
+        )
+        .expect("sb output");
         assert!(sb.contains("outbounds"));
     }
 }
