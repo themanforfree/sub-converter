@@ -1,22 +1,23 @@
 use sub_converter::formats::{ClashConfig, SingBoxConfig};
-use sub_converter::template::Template;
-use sub_converter::{InputFormat, InputItem, convert};
+use sub_converter::template::{OutputEncoding, Template};
+use sub_converter::{OriginKind, convert};
 
-fn build_inputs() -> Vec<InputItem> {
+fn input_uris() -> String {
     // A: ss, B: trojan
-    let uris = "ss://YWVzLTI1Ni1nY206cGFzcw@a.com:123#A\n\
-                trojan://pwd@b.com:443#B";
-    vec![InputItem {
-        format: InputFormat::UriList,
-        content: uris.to_string(),
-    }]
+    "ss://YWVzLTI1Ni1nY206cGFzcw@a.com:123#A\n\
+                trojan://pwd@b.com:443#B"
+        .into()
 }
 
 #[test]
 fn emit_clash_yaml() {
-    let inputs = build_inputs();
-    let tpl = Template::ClashYaml(ClashConfig::default());
-    let s = convert(inputs, tpl).expect("emit clash");
+    let s = convert(
+        OriginKind::UriList,
+        input_uris(),
+        Template::Clash(ClashConfig::default()),
+        OutputEncoding::Yaml,
+    )
+    .expect("emit clash");
     assert!(s.contains("proxies"));
     assert!(s.contains("type: ss"));
     assert!(s.contains("type: trojan"));
@@ -24,9 +25,13 @@ fn emit_clash_yaml() {
 
 #[test]
 fn emit_singbox_json() {
-    let inputs = build_inputs();
-    let tpl = Template::SingBoxJson(SingBoxConfig::default());
-    let s = convert(inputs, tpl).expect("emit sb");
+    let s = convert(
+        OriginKind::UriList,
+        input_uris(),
+        Template::SingBox(SingBoxConfig::default()),
+        OutputEncoding::Json,
+    )
+    .expect("emit sb");
     assert!(s.contains("outbounds"));
     assert!(s.contains("\"type\": \"shadowsocks\""));
     assert!(s.contains("\"type\": \"trojan\""));
@@ -57,8 +62,13 @@ rules:
 
     let tpl: ClashConfig = serde_yaml::from_str(template_yaml).expect("parse template");
 
-    let inputs = build_inputs();
-    let s = convert(inputs, Template::ClashYaml(tpl)).expect("emit clash");
+    let s = convert(
+        OriginKind::UriList,
+        input_uris(),
+        Template::Clash(tpl),
+        OutputEncoding::Yaml,
+    )
+    .expect("emit clash");
 
     assert!(s.contains("- A"));
     assert!(s.contains("- B"));
