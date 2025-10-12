@@ -2,11 +2,13 @@ use crate::error::{Error, Result};
 use crate::formats::{ClashConfig, SingBoxConfig};
 use crate::ir::Subscription;
 use crate::parse::uri::parse_uri_line;
-use crate::template::{OutputEncoding, Template};
+use crate::template::{OutputEncoding, TargetKind, Template, parse_template_text};
 use base64::Engine;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, Default)]
 pub enum OriginKind {
+    #[default]
     Auto,
     Clash,
     SingBox,
@@ -171,6 +173,22 @@ pub fn convert(
 ) -> Result<String> {
     let origin = parse_origin(kind, input.as_ref())?;
     convert_origin(origin, target, enc)
+}
+
+/// High-level convert that lets caller provide template as optional text or base64
+/// and choose target kind and encoding with sensible defaults.
+pub fn convert_full(
+    origin_kind: OriginKind,
+    origin_input: impl AsRef<[u8]>,
+    target_kind: TargetKind,
+    template_text: Option<&str>,
+    encoding: Option<OutputEncoding>,
+) -> Result<(String, OutputEncoding)> {
+    let origin = parse_origin(origin_kind, origin_input.as_ref())?;
+    let tpl = parse_template_text(target_kind, template_text)?;
+    let enc = encoding.unwrap_or_else(|| target_kind.default_encoding());
+    let body = convert_origin(origin, tpl, enc)?;
+    Ok((body, enc))
 }
 
 pub fn convert_origin(
