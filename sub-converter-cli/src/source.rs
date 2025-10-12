@@ -9,29 +9,6 @@ use std::fs;
 use std::thread;
 use std::time::Duration;
 
-/// Source specification
-pub struct SourceSpec {
-    pub source: String,
-}
-
-/// Parse source specification
-pub fn parse_source_spec(spec: &str) -> Result<SourceSpec> {
-    // Check if contains : separator
-    // Need to handle Windows paths (C:\...) and URLs (http://...)
-    // Strategy: find last : and check if it's followed by a valid format name
-
-    if let Some(pos) = spec.rfind(':') {
-        let (source_part, _format_part) = spec.split_at(pos);
-        Ok(SourceSpec {
-            source: source_part.to_string(),
-        })
-    } else {
-        Ok(SourceSpec {
-            source: spec.to_string(),
-        })
-    }
-}
-
 /// Try to decode base64 content if it appears to be encoded
 fn try_decode_base64(content: String) -> String {
     let trimmed = content.trim();

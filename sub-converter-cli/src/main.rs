@@ -9,7 +9,7 @@ use sub_converter::template::Template;
 use sub_converter::{OriginKind, convert};
 
 use args::Args;
-use source::{fetch_content, parse_source_spec};
+use source::fetch_content;
 use template::load_template;
 
 fn main() -> Result<()> {
@@ -20,10 +20,12 @@ fn main() -> Result<()> {
     let mut concatenated = String::new();
 
     for (idx, source_spec_str) in args.sources.iter().enumerate() {
-        let spec = parse_source_spec(source_spec_str)?;
-
-        eprintln!("Fetching subscription source {}: {}", idx + 1, spec.source);
-        let content = fetch_content(&spec.source, args.retries)?;
+        eprintln!(
+            "Fetching subscription source {}: {}",
+            idx + 1,
+            source_spec_str
+        );
+        let content = fetch_content(source_spec_str, args.retries)?;
         if !concatenated.is_empty() {
             concatenated.push('\n');
         }
@@ -34,20 +36,7 @@ fn main() -> Result<()> {
         anyhow::bail!("No valid input sources provided");
     }
 
-    // Target selection via string (clash|singbox); for now infer from template file name or user passes correct target.
-    // Here we reuse template loader with explicit target string.
-    let target_str = if let Some(path) = args.template.as_deref() {
-        if path.contains("sing") {
-            "singbox"
-        } else {
-            "clash"
-        }
-    } else {
-        // Default to clash if not specified
-        "clash"
-    };
-
-    let template = load_template(target_str, args.template.as_deref())?;
+    let template = load_template(&args.target, args.template.as_deref())?;
 
     eprintln!("Generating configuration...");
     let output_content = match template {

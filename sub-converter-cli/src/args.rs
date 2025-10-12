@@ -19,6 +19,10 @@ pub struct Args {
     #[arg(short, long, value_parser = parse_output_encoding)]
     pub encoding: OutputEncoding,
 
+    /// Target type (clash|singbox). If not set, inferred from template path, else defaults to clash.
+    #[arg(short, long)]
+    pub target: String,
+
     /// Template file path
     #[arg(short = 'T', long)]
     pub template: Option<String>,
