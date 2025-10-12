@@ -1,5 +1,5 @@
 [workspace]
-members = ["sub-converter", "sub-converter-cli"]
+members = ["sub-converter", "sub-converter-cli", "sub-converter-worker"]
 resolver = "2"
 
 [workspace.package]
