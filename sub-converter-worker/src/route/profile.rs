@@ -24,6 +24,9 @@ pub struct ProfileQuery {
     /// 模版（可选）：模板地址（http/https）
     #[serde(default)]
     template_url: Option<String>,
+    /// 授权令牌（必填）：通过查询参数 ?token= 传入
+    #[serde(default)]
+    token: Option<String>,
 }
 
 async fn fetch_text(url: &str) -> std::result::Result<String, String> {
@@ -40,7 +43,7 @@ async fn resolve_template(q: &ProfileQuery) -> std::result::Result<Option<String
     Ok(q.template_b64.clone())
 }
 
-pub async fn handler(req: Request, _ctx: RouteContext<()>) -> Result<Response> {
+pub async fn handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     // 解析查询参数
     let url = req.url()?;
     let q: ProfileQuery = match url.query() {
@@ -50,6 +53,19 @@ pub async fn handler(req: Request, _ctx: RouteContext<()>) -> Result<Response> {
         },
         None => return Response::error("missing query", 400),
     };
+
+    // token 校验：必须提供且匹配环境变量 PROFILE_TOKEN
+    let provided = match q.token.as_deref() {
+        Some(t) if !t.is_empty() => t,
+        _ => return Response::error("unauthorized: missing token", 401),
+    };
+    let expected = match ctx.var("PROFILE_TOKEN") {
+        Ok(v) => v.to_string(),
+        Err(_) => return Response::error("server misconfigured: PROFILE_TOKEN missing", 500),
+    };
+    if provided != expected {
+        return Response::error("unauthorized: invalid token", 401);
+    }
 
     if q.origin_url.is_empty() {
         return Response::error("missing origin", 400);
