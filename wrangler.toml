@@ -4,3 +4,8 @@ compatibility_date = "2025-10-12"
 
 [build]
 command = "cargo install -q worker-build && cd sub-converter-worker && worker-build --release"
+
+[[r2_buckets]]
+binding = 'TEMPLATE'
+bucket_name = 'template'
+preview_bucket_name = 'template-dev'
