@@ -10,22 +10,24 @@ pub enum Template {
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum OutputEncoding {
     Json,
     Yaml,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum TargetKind {
     Clash,
-    SingBox,
+    Singbox,
 }
 
 impl TargetKind {
     pub fn default_encoding(self) -> OutputEncoding {
         match self {
             TargetKind::Clash => OutputEncoding::Yaml,
-            TargetKind::SingBox => OutputEncoding::Json,
+            TargetKind::Singbox => OutputEncoding::Json,
         }
     }
 }
@@ -71,7 +73,7 @@ fn parse_singbox_from_str(s: &str) -> Result<SingBoxConfig> {
 pub fn parse_template_text(kind: TargetKind, text: Option<&str>) -> Result<Template> {
     match (kind, text) {
         (TargetKind::Clash, None) => Ok(Template::Clash(ClashConfig::default())),
-        (TargetKind::SingBox, None) => Ok(Template::SingBox(SingBoxConfig::default())),
+        (TargetKind::Singbox, None) => Ok(Template::SingBox(SingBoxConfig::default())),
         (TargetKind::Clash, Some(s)) => {
             // try raw first
             match parse_clash_from_str(s) {
@@ -89,7 +91,7 @@ pub fn parse_template_text(kind: TargetKind, text: Option<&str>) -> Result<Templ
                 }
             }
         }
-        (TargetKind::SingBox, Some(s)) => match parse_singbox_from_str(s) {
+        (TargetKind::Singbox, Some(s)) => match parse_singbox_from_str(s) {
             Ok(cfg) => Ok(Template::SingBox(cfg)),
             Err(_) => {
                 if let Ok(decoded) = base64::engine::general_purpose::STANDARD.decode(s.trim())

@@ -27,18 +27,10 @@ pub struct ProfileQuery {
 }
 
 async fn fetch_text(url: &str) -> std::result::Result<String, String> {
-    let url = Url::parse(url).map_err(|e| format!("invalid url: {e}"))?;
-    let mut resp = Fetch::Url(url)
-        .send()
-        .await
-        .map_err(|e| format!("fetch error: {e}"))?;
-    let status = resp.status_code();
-    if !(200..300).contains(&status) {
-        return Err(format!("upstream status: {}", status));
-    }
-    resp.text()
-        .await
-        .map_err(|e| format!("read body error: {e}"))
+    let url = Url::parse(url).map_err(|e| e.to_string())?;
+    let mut res = Fetch::Url(url).send().await.map_err(|e| e.to_string())?;
+    let body = res.text().await.map_err(|e| e.to_string())?;
+    Ok(body)
 }
 
 async fn resolve_template(q: &ProfileQuery) -> std::result::Result<Option<String>, String> {
