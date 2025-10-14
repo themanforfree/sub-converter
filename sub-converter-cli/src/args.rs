@@ -12,16 +12,16 @@ pub struct Args {
     /// Subscription source list, format: source[:format]
     /// source can be a URL or file path
     /// format options: clash-yaml|clash-json|singbox-yaml|singbox-json|urilist|urilist-b64|auto
-    #[arg(required = true)]
+    #[arg(required_unless_present = "list_templates")]
     pub sources: Vec<String>,
 
     /// Output encoding (json|yaml)
     #[arg(short, long, value_parser = parse_output_encoding)]
-    pub encoding: OutputEncoding,
+    pub encoding: Option<OutputEncoding>,
 
     /// Target type (clash|singbox). If not set, inferred from template path, else defaults to clash.
     #[arg(short, long)]
-    pub target: String,
+    pub target: Option<String>,
 
     /// Template file path
     #[arg(short = 'T', long)]
@@ -34,6 +34,10 @@ pub struct Args {
     /// Number of retries for network requests
     #[arg(short, long, default_value = "3")]
     pub retries: u32,
+
+    /// List available templates in the templates directory
+    #[arg(short = 'L', long)]
+    pub list_templates: bool,
 }
 
 /// Parse output format
