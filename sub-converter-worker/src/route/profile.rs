@@ -6,6 +6,8 @@ use sub_converter::{
 };
 use worker::{Fetch, Request, Response, Result, RouteContext, Url};
 
+use crate::route::template::get_template;
+
 #[derive(Debug, Deserialize)]
 pub struct ProfileQuery {
     /// 源订阅链接（必填）
@@ -24,6 +26,9 @@ pub struct ProfileQuery {
     /// 模版（可选）：模板地址（http/https）
     #[serde(default)]
     template_url: Option<String>,
+    /// 模版（可选）：base64 编码内容
+    #[serde(default)]
+    template_name: Option<String>,
     /// 授权令牌（必填）：通过查询参数 ?token= 传入
     #[serde(default)]
     token: Option<String>,
@@ -36,7 +41,14 @@ async fn fetch_text(url: &str) -> std::result::Result<String, String> {
     Ok(body)
 }
 
-async fn resolve_template(q: &ProfileQuery) -> std::result::Result<Option<String>, String> {
+async fn resolve_template(
+    q: &ProfileQuery,
+    ctx: &RouteContext<()>,
+) -> std::result::Result<Option<String>, String> {
+    if let Some(ref name) = q.template_name {
+        let bucket = ctx.bucket("TEMPLATE").map_err(|e| e.to_string())?;
+        return get_template(&bucket, name).await.map(Some);
+    }
     if let Some(ref url) = q.template_url {
         return fetch_text(url).await.map(Some);
     }
@@ -78,7 +90,7 @@ pub async fn handler(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     };
 
     // 解析模板（可选）
-    let template_raw = match resolve_template(&q).await {
+    let template_raw = match resolve_template(&q, &ctx).await {
         Ok(v) => v,
         Err(e) => return Response::error(format!("template error: {e}"), 400),
     };
