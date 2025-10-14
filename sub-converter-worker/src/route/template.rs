@@ -23,3 +23,26 @@ pub async fn get(_req: Request, ctx: RouteContext<()>) -> Result<Response> {
 
     Response::ok(res)
 }
+
+pub async fn list(_req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let bucket = ctx.bucket("TEMPLATE")?;
+    
+    // List all objects in the bucket
+    let list_result = bucket
+        .list()
+        .execute()
+        .await
+        .map_err(|e| worker::Error::RustError(format!("Failed to list templates: {}", e)))?;
+    
+    // Extract template names from the list
+    let templates: Vec<String> = list_result
+        .objects()
+        .iter()
+        .map(|obj| obj.key().to_string())
+        .collect();
+    
+    // Return as JSON
+    Response::from_json(&serde_json::json!({
+        "templates": templates
+    }))
+}
