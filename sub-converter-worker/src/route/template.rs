@@ -25,16 +25,16 @@ pub async fn get(_req: Request, ctx: RouteContext<()>) -> Result<Response> {
 }
 
 pub async fn put(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    // Get template name from URL parameter
     let name = ctx.param("name").ok_or("template name not found")?;
 
-    // Token validation: must provide and match environment variable TEMPLATE_TOKEN
+    // Parse token from query parameter
     let url = req.url()?;
     let token = url
         .query_pairs()
         .find(|(key, _)| key == "token")
         .map(|(_, value)| value.to_string());
 
+    // Validate token against TEMPLATE_TOKEN environment variable
     let provided = match token.as_deref() {
         Some(t) if !t.is_empty() => t,
         _ => return Response::error("unauthorized: missing token", 401),
@@ -49,7 +49,7 @@ pub async fn put(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
         return Response::error("unauthorized: invalid token", 401);
     }
 
-    // Get template content from request body
+    // Read template content from request body
     let body = match req.text().await {
         Ok(text) => text,
         Err(e) => return Response::error(format!("failed to read request body: {}", e), 400),
@@ -59,7 +59,7 @@ pub async fn put(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
         return Response::error("template content cannot be empty", 400);
     }
 
-    // Store template in R2 bucket
+    // Upload template to R2 bucket
     let bucket = ctx.bucket("TEMPLATE")?;
     bucket
         .put(name, body)
