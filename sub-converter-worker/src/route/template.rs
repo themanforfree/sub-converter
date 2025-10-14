@@ -29,15 +29,16 @@ pub async fn put(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let name = ctx.param("name").ok_or("template name not found")?;
 
     // Token validation: must provide and match environment variable TEMPLATE_TOKEN
-    let auth_header = req
-        .headers()
-        .get("Authorization")
-        .unwrap_or(None)
-        .ok_or("unauthorized: missing authorization header")?;
+    let url = req.url()?;
+    let token = url
+        .query_pairs()
+        .find(|(key, _)| key == "token")
+        .map(|(_, value)| value.to_string());
 
-    let provided = auth_header
-        .strip_prefix("Bearer ")
-        .ok_or("unauthorized: invalid authorization format")?;
+    let provided = match token.as_deref() {
+        Some(t) if !t.is_empty() => t,
+        _ => return Response::error("unauthorized: missing token", 401),
+    };
 
     let expected = match ctx.var("TEMPLATE_TOKEN") {
         Ok(v) => v.to_string(),

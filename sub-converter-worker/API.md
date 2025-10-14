@@ -42,16 +42,15 @@ Upload a template to the R2 bucket.
 **URL Parameters:**
 - `name`: Template name
 
-**Headers:**
-- `Authorization: Bearer <token>` (required): Must match `TEMPLATE_TOKEN` environment variable
+**Query Parameters:**
+- `token` (required): Authorization token (must match `TEMPLATE_TOKEN` environment variable)
 
 **Body:**
 Template content (YAML or JSON)
 
 **Example:**
 ```bash
-curl -X PUT https://your-worker.workers.dev/template/my-template \
-  -H "Authorization: Bearer YOUR_TEMPLATE_TOKEN" \
+curl -X PUT "https://your-worker.workers.dev/template/my-template?token=YOUR_TEMPLATE_TOKEN" \
   -H "Content-Type: application/yaml" \
   --data-binary @template.yaml
 ```
