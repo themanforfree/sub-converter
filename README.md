@@ -81,23 +81,32 @@ Templates allow you to customize the output configuration. See the [templates](.
 - `templates/clash-example.yaml`: Full-featured Clash template with rule providers
 - `templates/singbox-example.json`: Basic SingBox template
 
+To list all available templates:
+```bash
+sub-converter-cli --list-templates
+# or use the short flag
+sub-converter-cli -L
+```
+
 For more information about templates, see [templates/README.md](./templates/README.md).
 
 ## Command-Line Options
 
 ```
-Usage: sub-converter-cli [OPTIONS] --target <TARGET> <SOURCES>...
+Usage: sub-converter-cli [OPTIONS] [SOURCES]...
 
 Arguments:
-  <SOURCES>...  Subscription source list, format: source[:format]
+  [SOURCES]...  Subscription source list, format: source[:format]
                 source can be a URL or file path
                 format options: clash, singbox, urilist
 
 Options:
+  -e, --encoding <ENCODING>    Output encoding (json|yaml)
   -t, --target <TARGET>        Output format (clash or singbox)
   -T, --template <TEMPLATE>    Template file path
   -o, --output <OUTPUT>        Output file path (defaults to stdout)
   -r, --retries <RETRIES>      Number of retries for network requests [default: 3]
+  -L, --list-templates         List available templates in the templates directory
   -h, --help                   Print help
   -V, --version                Print version
 ```
@@ -121,6 +130,24 @@ The CLI includes automatic retry support for network requests:
   ```
 
 ## Examples
+
+### Example 0: List Available Templates
+
+List all built-in templates:
+```bash
+sub-converter-cli --list-templates
+```
+
+Output:
+```
+Available templates in "templates":
+
+  clash-example.yaml (Clash) - Clash Template Example
+  clash-simple.yaml (Clash) - Simple Clash Template
+  singbox-example.json (SingBox)
+
+Usage: sub-converter-cli -t <TARGET> -T templates/<template-file> <SOURCES>...
+```
 
 ### Example 1: Convert URI list to Clash
 
