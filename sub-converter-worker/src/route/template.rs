@@ -65,7 +65,7 @@ pub async fn put(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
         .put(name, body)
         .execute()
         .await
-        .map_err(|e| format!("failed to upload template: {}", e))?;
+        .map_err(|e| format!("failed to upload template '{}': {}", name, e))?;
 
     Response::ok("template uploaded successfully")
 }
