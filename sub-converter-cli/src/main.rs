@@ -10,21 +10,10 @@ use sub_converter::{OriginKind, convert};
 
 use args::Args;
 use source::fetch_content;
-use template::{load_template, list_templates};
+use template::load_template;
 
 fn main() -> Result<()> {
     let args = Args::parse();
-
-    // Handle template listing
-    if args.list_templates {
-        return list_templates();
-    }
-
-    // Validate required arguments for conversion
-    let target = args.target.as_ref()
-        .ok_or_else(|| anyhow::anyhow!("--target is required for conversion"))?;
-    let encoding = args.encoding
-        .ok_or_else(|| anyhow::anyhow!("--encoding is required for conversion"))?;
 
     // For now CLI aggregates multiple sources by simple concatenation for UriList use-cases.
     // Future: support true multi-origin merge externally if needed.
@@ -47,7 +36,7 @@ fn main() -> Result<()> {
         anyhow::bail!("No valid input sources provided");
     }
 
-    let template = load_template(target, args.template.as_deref())?;
+    let template = load_template(&args.target, args.template.as_deref())?;
 
     eprintln!("Generating configuration...");
     let output_content = match template {
@@ -55,14 +44,14 @@ fn main() -> Result<()> {
             OriginKind::Auto,
             &concatenated,
             Template::Clash(cfg),
-            encoding,
+            args.encoding,
         )
         .context("Failed to generate Clash configuration")?,
         Template::SingBox(cfg) => convert(
             OriginKind::Auto,
             &concatenated,
             Template::SingBox(cfg),
-            encoding,
+            args.encoding,
         )
         .context("Failed to generate SingBox configuration")?,
     };
