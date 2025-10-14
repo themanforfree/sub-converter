@@ -5,6 +5,10 @@ compatibility_date = "2025-10-12"
 [build]
 command = "cargo install -q worker-build && cd sub-converter-worker && worker-build --release"
 
+# Environment variables (set via Cloudflare Dashboard or wrangler CLI):
+# - PROFILE_TOKEN: Token for /profile endpoint authentication
+# - TEMPLATE_TOKEN: Token for template upload authentication
+
 [[r2_buckets]]
 binding = 'TEMPLATE'
 bucket_name = 'template'
