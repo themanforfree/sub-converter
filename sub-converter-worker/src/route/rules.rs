@@ -10,13 +10,44 @@ pub async fn get_rule(kv: &KvStore, name: &str) -> std::result::Result<String, S
     }
 }
 
-/// GET /rules/:name - Retrieve a rule from KV storage
+/// GET /rules/:name - Retrieve a rule from KV storage as Clash rule-provider format
 pub async fn get(_req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let name = ctx.param("name").ok_or("rule name not found")?;
     let kv = ctx.kv("RULES")?;
-    let res = get_rule(&kv, name).await?;
+    let rules_content = get_rule(&kv, name).await?;
 
-    Response::ok(res)
+    // Parse the stored rules (can be line-separated text or YAML array)
+    let rules: Vec<String> = if rules_content.trim_start().starts_with('[') {
+        // Try to parse as JSON array
+        match serde_json::from_str::<Vec<String>>(&rules_content) {
+            Ok(arr) => arr,
+            Err(_) => {
+                // Fall back to line-by-line parsing
+                rules_content
+                    .lines()
+                    .map(|s| s.trim())
+                    .filter(|s| !s.is_empty() && !s.starts_with('#'))
+                    .map(String::from)
+                    .collect()
+            }
+        }
+    } else {
+        // Parse as line-separated text
+        rules_content
+            .lines()
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty() && !s.starts_with('#'))
+            .map(String::from)
+            .collect()
+    };
+
+    // Format as Clash rule-provider YAML
+    let yaml_output = serde_yaml::to_string(&serde_json::json!({
+        "payload": rules
+    }))
+    .map_err(|e| format!("failed to generate YAML: {}", e))?;
+
+    Response::ok(yaml_output)
 }
 
 /// PUT /rules/:name - Store or update a rule in KV storage
