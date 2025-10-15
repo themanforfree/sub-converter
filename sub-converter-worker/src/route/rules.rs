@@ -1,13 +1,9 @@
-use worker::{kv::KvStore, Request, Response, Result, RouteContext};
+use worker::{Request, Response, Result, RouteContext, kv::KvStore};
 
 /// Get a rule from KV storage
 pub async fn get_rule(kv: &KvStore, name: &str) -> std::result::Result<String, String> {
-    let value = kv
-        .get(name)
-        .text()
-        .await
-        .map_err(|e| e.to_string())?;
-    
+    let value = kv.get(name).text().await.map_err(|e| e.to_string())?;
+
     match value {
         Some(v) => Ok(v),
         None => Err("rule not found".to_string()),
@@ -73,21 +69,21 @@ pub async fn put(mut req: Request, ctx: RouteContext<()>) -> Result<Response> {
 /// GET /rules - List all available rules in KV storage
 pub async fn list(_req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let kv = ctx.kv("RULES")?;
-    
+
     // List all keys in the KV namespace
     let list_result = kv
         .list()
         .execute()
         .await
         .map_err(|e| worker::Error::RustError(format!("Failed to list rules: {}", e)))?;
-    
+
     // Extract rule names from the list
     let rules: Vec<String> = list_result
         .keys
         .iter()
         .map(|key| key.name.clone())
         .collect();
-    
+
     // Return as JSON
     Response::from_json(&serde_json::json!({
         "rules": rules
