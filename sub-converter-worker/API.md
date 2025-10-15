@@ -61,12 +61,72 @@ curl -X PUT "https://your-worker.workers.dev/template/my-template?token=YOUR_TEM
 - `401 Unauthorized`: Missing or invalid authorization token
 - `500 Internal Server Error`: Server misconfiguration or R2 error
 
+### GET /rules
+
+List all available rules in the KV store.
+
+**Example:**
+```bash
+curl https://your-worker.workers.dev/rules
+```
+
+**Response:**
+- `200 OK`: Returns JSON array of rule names
+```json
+{
+  "rules": ["my-rule", "another-rule"]
+}
+```
+
+### GET /rules/:name
+
+Retrieve a rule from the KV store.
+
+**URL Parameters:**
+- `name`: Rule name
+
+**Example:**
+```bash
+curl https://your-worker.workers.dev/rules/my-rule
+```
+
+**Response:**
+- `200 OK`: Returns rule content
+- `404 Not Found`: Rule not found
+
+### PUT /rules/:name
+
+Store or update a rule in the KV store.
+
+**URL Parameters:**
+- `name`: Rule name
+
+**Query Parameters:**
+- `token` (required): Authorization token (must match `RULES_TOKEN` environment variable)
+
+**Body:**
+Rule content (any text format)
+
+**Example:**
+```bash
+curl -X PUT "https://your-worker.workers.dev/rules/my-rule?token=YOUR_RULES_TOKEN" \
+  -H "Content-Type: text/plain" \
+  --data-binary @rules.txt
+```
+
+**Response:**
+- `200 OK`: Rule stored successfully
+- `400 Bad Request`: Invalid request (empty body, missing name)
+- `401 Unauthorized`: Missing or invalid authorization token
+- `500 Internal Server Error`: Server misconfiguration or KV error
+
 ## Environment Variables
 
 The worker requires the following environment variables:
 
 - `PROFILE_TOKEN`: Token for authenticating profile conversion requests
 - `TEMPLATE_TOKEN`: Token for authenticating template upload requests
+- `RULES_TOKEN`: Token for authenticating rules upload requests
 
 ## R2 Bucket Configuration
 
@@ -77,4 +137,15 @@ The worker uses an R2 bucket binding named `TEMPLATE` for storing templates. Con
 binding = 'TEMPLATE'
 bucket_name = 'template'
 preview_bucket_name = 'template-dev'
+```
+
+## KV Namespace Configuration
+
+The worker uses a KV namespace binding named `RULES` for storing rules. Configure this in `wrangler.toml`:
+
+```toml
+[[kv_namespaces]]
+binding = 'RULES'
+id = 'rules'
+preview_id = 'rules-dev'
 ```

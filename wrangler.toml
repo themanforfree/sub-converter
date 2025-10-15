@@ -19,3 +19,8 @@ invocation_logs = true
 binding = 'TEMPLATE'
 bucket_name = 'template'
 preview_bucket_name = 'template-dev'
+
+[[kv_namespaces]]
+binding = 'RULES'
+id = '4a5e0f3e4e5c423da540b17958bdad36'
+preview_id = '10f060cbb4c24c61963c48d28626cc9b'
