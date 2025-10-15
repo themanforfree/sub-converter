@@ -1318,6 +1318,7 @@ version = "0.1.5"
 dependencies = [
  "axum",
  "base64",
+ "js-sys",
  "serde",
  "serde_json",
  "serde_urlencoded",
