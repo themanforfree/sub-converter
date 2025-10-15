@@ -12,6 +12,10 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .get_async("/rules", route::rules::list)
         .get_async("/rules/:name", route::rules::get)
         .put_async("/rules/:name", route::rules::put)
+        .delete_async("/rules/:name", route::rules::delete)
+        .post_async("/rules/:name/rules", route::rules::add_rules)
+        .put_async("/rules/:name/rules/:index", route::rules::update_rule)
+        .delete_async("/rules/:name/rules/:index", route::rules::delete_rule)
         .run(req, env)
         .await
 }

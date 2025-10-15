@@ -80,34 +80,34 @@ curl https://your-worker.workers.dev/rules
 
 ### GET /rules/:name
 
-Retrieve a rule from the KV store in Clash rule-provider format.
+Retrieve an entire rule set from the KV store in Clash rule-provider format.
 
 **URL Parameters:**
-- `name`: Rule name
+- `name`: Rule set name
 
 **Example:**
 ```bash
-curl https://your-worker.workers.dev/rules/my-rule
+curl https://your-worker.workers.dev/rules/my-rules
 ```
 
 **Response:**
-- `200 OK`: Returns rule content in Clash rule-provider YAML format
+- `200 OK`: Returns rule set in Clash rule-provider YAML format
 ```yaml
 payload:
   - DOMAIN-SUFFIX,example.com
   - DOMAIN,exact.example.com
   - IP-CIDR,192.168.0.0/16
 ```
-- `404 Not Found`: Rule not found
+- `404 Not Found`: Rule set not found
 
 **Note:** The endpoint automatically formats stored rules as Clash rule-provider YAML with a `payload` field, making it compatible with Clash's `rule-providers` configuration.
 
 ### PUT /rules/:name
 
-Store or update a rule in the KV store.
+Replace an entire rule set in the KV store.
 
 **URL Parameters:**
-- `name`: Rule name
+- `name`: Rule set name
 
 **Query Parameters:**
 - `token` (required): Authorization token (must match `RULES_TOKEN` environment variable)
@@ -120,7 +120,7 @@ Rule content in one of the following formats:
 **Example:**
 ```bash
 # Line-separated format
-curl -X PUT "https://your-worker.workers.dev/rules/my-rule?token=YOUR_RULES_TOKEN" \
+curl -X PUT "https://your-worker.workers.dev/rules/my-rules?token=YOUR_RULES_TOKEN" \
   -H "Content-Type: text/plain" \
   --data-binary @- << EOF
 DOMAIN-SUFFIX,example.com
@@ -130,16 +130,115 @@ IP-CIDR,192.168.0.0/16
 EOF
 
 # JSON array format
-curl -X PUT "https://your-worker.workers.dev/rules/my-rule?token=YOUR_RULES_TOKEN" \
+curl -X PUT "https://your-worker.workers.dev/rules/my-rules?token=YOUR_RULES_TOKEN" \
   -H "Content-Type: application/json" \
   -d '["DOMAIN-SUFFIX,example.com", "DOMAIN,exact.example.com"]'
 ```
 
 **Response:**
-- `200 OK`: Rule stored successfully
+- `200 OK`: Rule set replaced successfully
 - `400 Bad Request`: Invalid request (empty body, missing name)
 - `401 Unauthorized`: Missing or invalid authorization token
 - `500 Internal Server Error`: Server misconfiguration or KV error
+
+### POST /rules/:name/rules
+
+Add rules to an existing rule set (or create a new one if it doesn't exist).
+
+**URL Parameters:**
+- `name`: Rule set name
+
+**Query Parameters:**
+- `token` (required): Authorization token (must match `RULES_TOKEN` environment variable)
+
+**Body:**
+Rules to add (line-separated or JSON array format)
+
+**Example:**
+```bash
+# Add new rules to existing set
+curl -X POST "https://your-worker.workers.dev/rules/my-rules/rules?token=YOUR_RULES_TOKEN" \
+  -H "Content-Type: text/plain" \
+  --data-binary @- << EOF
+DOMAIN-SUFFIX,newsite.com
+IP-CIDR,10.0.0.0/8
+EOF
+```
+
+**Response:**
+- `200 OK`: Rules added successfully
+- `400 Bad Request`: Invalid request
+- `401 Unauthorized`: Missing or invalid authorization token
+
+### PUT /rules/:name/rules/:index
+
+Update a specific rule in a rule set by its index.
+
+**URL Parameters:**
+- `name`: Rule set name
+- `index`: Rule index (0-based)
+
+**Query Parameters:**
+- `token` (required): Authorization token (must match `RULES_TOKEN` environment variable)
+
+**Body:**
+New rule content (plain text)
+
+**Example:**
+```bash
+# Update rule at index 0
+curl -X PUT "https://your-worker.workers.dev/rules/my-rules/rules/0?token=YOUR_RULES_TOKEN" \
+  -H "Content-Type: text/plain" \
+  -d "DOMAIN-SUFFIX,updated.com"
+```
+
+**Response:**
+- `200 OK`: Rule updated successfully
+- `400 Bad Request`: Invalid index or empty content
+- `401 Unauthorized`: Missing or invalid authorization token
+- `404 Not Found`: Rule set not found
+
+### DELETE /rules/:name/rules/:index
+
+Delete a specific rule from a rule set by its index.
+
+**URL Parameters:**
+- `name`: Rule set name
+- `index`: Rule index (0-based)
+
+**Query Parameters:**
+- `token` (required): Authorization token (must match `RULES_TOKEN` environment variable)
+
+**Example:**
+```bash
+# Delete rule at index 2
+curl -X DELETE "https://your-worker.workers.dev/rules/my-rules/rules/2?token=YOUR_RULES_TOKEN"
+```
+
+**Response:**
+- `200 OK`: Rule deleted successfully
+- `400 Bad Request`: Invalid index or cannot delete last rule
+- `401 Unauthorized`: Missing or invalid authorization token
+- `404 Not Found`: Rule set not found
+
+### DELETE /rules/:name
+
+Delete an entire rule set.
+
+**URL Parameters:**
+- `name`: Rule set name
+
+**Query Parameters:**
+- `token` (required): Authorization token (must match `RULES_TOKEN` environment variable)
+
+**Example:**
+```bash
+curl -X DELETE "https://your-worker.workers.dev/rules/my-rules?token=YOUR_RULES_TOKEN"
+```
+
+**Response:**
+- `200 OK`: Rule set deleted successfully
+- `401 Unauthorized`: Missing or invalid authorization token
 
 ## Environment Variables
 
@@ -179,8 +278,8 @@ The `/rules/:name` endpoint returns rules in Clash rule-provider format. You can
 rule-providers:
   my-custom-rules:
     type: http
-    url: https://your-worker.workers.dev/rules/my-rule
-    path: ./rules/my-rule.yaml
+    url: https://your-worker.workers.dev/rules/my-custom-rules
+    path: ./rules/my-custom-rules.yaml
     interval: 86400
     behavior: classical
 
@@ -189,17 +288,46 @@ rules:
   - MATCH,DIRECT
 ```
 
-To update rules dynamically:
+### Managing Rules Dynamically
 
+**Replace entire rule set:**
 ```bash
-# Upload new rules
-curl -X PUT "https://your-worker.workers.dev/rules/my-rule?token=YOUR_RULES_TOKEN" \
+curl -X PUT "https://your-worker.workers.dev/rules/my-custom-rules?token=YOUR_RULES_TOKEN" \
+  -H "Content-Type: text/plain" \
+  --data-binary @- << EOF
+DOMAIN-SUFFIX,example.com
+DOMAIN,exact.example.com
+IP-CIDR,192.168.0.0/16
+EOF
+```
+
+**Add rules to existing set:**
+```bash
+curl -X POST "https://your-worker.workers.dev/rules/my-custom-rules/rules?token=YOUR_RULES_TOKEN" \
   -H "Content-Type: text/plain" \
   --data-binary @- << EOF
 DOMAIN-SUFFIX,newsite.com
-DOMAIN,another.example.com
 IP-CIDR,10.0.0.0/8
 EOF
-
-# Clash will fetch the updated rules based on the interval setting
 ```
+
+**Update a specific rule (by index):**
+```bash
+# Update rule at index 0
+curl -X PUT "https://your-worker.workers.dev/rules/my-custom-rules/rules/0?token=YOUR_RULES_TOKEN" \
+  -H "Content-Type: text/plain" \
+  -d "DOMAIN-SUFFIX,updated.com"
+```
+
+**Delete a specific rule (by index):**
+```bash
+# Delete rule at index 1
+curl -X DELETE "https://your-worker.workers.dev/rules/my-custom-rules/rules/1?token=YOUR_RULES_TOKEN"
+```
+
+**Delete entire rule set:**
+```bash
+curl -X DELETE "https://your-worker.workers.dev/rules/my-custom-rules?token=YOUR_RULES_TOKEN"
+```
+
+Clash will fetch the updated rules based on the interval setting in your configuration.
